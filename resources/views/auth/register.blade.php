@@ -1,6 +1,16 @@
 <x-guest-layout>
     <form method="POST" action="{{ route('register') }}">
         @csrf
+        <div class="mt-4">
+    <x-input-label for="dni" :value="__('DNI')" />
+    <div class="flex gap-2">
+        <x-text-input id="dni" class="block mt-1 w-full" type="text" name="dni" :value="old('dni')" required autofocus maxlength="8" />
+        <button type="button" id="btn-validar-dni" class="mt-1 px-4 bg-gray-800 text-white rounded-md hover:bg-gray-700">
+            Validar
+        </button>
+    </div>
+    <x-input-error :messages="$errors->get('dni')" class="mt-2" />
+</div>
 
         <!-- Name -->
         <div>
@@ -50,3 +60,39 @@
         </div>
     </form>
 </x-guest-layout>
+<script>
+    document.getElementById('btn-validar-dni').addEventListener('click', async () => {
+        const dni = document.getElementById('dni').value;
+        const nombreInput = document.getElementById('name');
+        const btn = document.getElementById('btn-validar-dni');
+
+        if (dni.length !== 8) return alert('El DNI debe tener 8 dígitos');
+
+        // Efecto visual "Cargando"
+        btn.disabled = true;
+        btn.innerText = 'Buscando...';
+        nombreInput.value = 'Consultando RENIEC...';
+
+        try {
+            const response = await fetch(`/consulta-dni/${dni}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // ¡Éxito! Llenamos el nombre y bloqueamos el campo
+                nombreInput.value = data.nombre_completo;
+                nombreInput.readOnly = true; 
+                nombreInput.classList.add('bg-gray-100'); // Color gris para indicar bloqueado
+            } else {
+                alert('DNI no encontrado o servicio no disponible');
+                nombreInput.value = '';
+                nombreInput.readOnly = false;
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error al conectar con el servidor');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Validar';
+        }
+    });
+</script>

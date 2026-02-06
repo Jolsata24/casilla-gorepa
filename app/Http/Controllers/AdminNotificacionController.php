@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Mail\NotificacionRecibida;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Notificacion;
@@ -10,36 +11,55 @@ use Illuminate\Support\Facades\Storage;
 class AdminNotificacionController extends Controller
 {
     // 1. Mostrar el formulario de envío
-    public function create()
-    {
-        // Traemos a todos los usuarios que NO son administradores (ciudadanos)
-        $usuarios = User::where('is_admin', false)->get();
-        return view('admin.crear', compact('usuarios'));
-    }
+    public function create(Request $request)
+{
+    $search = $request->input('search');
+
+    $usuarios = User::where('is_admin', false)
+        ->when($search, function ($query) use ($search) {
+            return $query->where('name', 'LIKE', "%{$search}%")
+                         ->orWhere('dni', 'LIKE', "%{$search}%")
+                         ->orWhere('email', 'LIKE', "%{$search}%");
+        })
+        ->limit(10) // Solo mostramos los 10 mejores resultados para no saturar
+        ->get();
+
+    return view('admin.crear', compact('usuarios', 'search'));
+}
 
     // 2. Guardar la notificación y el archivo
     public function store(Request $request)
-    {
-        // Validamos que no suban cualquier cosa
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'asunto' => 'required|string|max:255',
-            'archivo' => 'required|file|mimes:pdf|max:10240', // Solo PDF, máx 10MB
-        ]);
+{
+    $request->validate([
+        'user_id' => 'required|exists:users,id',
+        'asunto' => 'required|string|max:255',
+        'archivo' => 'required|file|mimes:pdf|max:10240',
+    ]);
 
-        // Subir el archivo a la carpeta privada 'notificaciones'
-        // Laravel le asignará un nombre único encriptado automáticamente
-        $ruta = $request->file('archivo')->store('notificaciones');
+    $ruta = $request->file('archivo')->store('notificaciones');
 
-        // Crear el registro en Base de Datos
-        Notificacion::create([
-            'user_id' => $request->user_id,
-            'asunto' => $request->asunto,
-            'mensaje' => $request->mensaje,
-            'ruta_archivo_pdf' => $ruta,
-            'fecha_lectura' => null // Nace sin leer
-        ]);
+    // 1. Guardamos en la BD
+    $notificacion = Notificacion::create([
+        'user_id' => $request->user_id,
+        'asunto' => $request->asunto,
+        'mensaje' => $request->mensaje,
+        'ruta_archivo_pdf' => $ruta,
+    ]);
 
-        return redirect()->route('admin.crear')->with('success', '¡Notificación enviada correctamente!');
-    }
+    // 2. Buscamos al ciudadano y enviamos el correo
+    $usuario = User::find($request->user_id);
+    Mail::to($usuario->email)->send(new NotificacionRecibida($notificacion));
+
+    return redirect()->route('admin.crear')->with('success', 'Notificación enviada y ciudadano avisado por correo.');
 }
+    // app/Http/Controllers/AdminNotificacionController.php
+
+public function index()
+{
+    // Ahora 'user' ya existe como relación
+    $notificaciones = Notificacion::with('user')->orderBy('created_at', 'desc')->get();
+    
+    return view('admin.index', compact('notificaciones'));
+}
+}
+
