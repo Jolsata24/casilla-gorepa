@@ -18,7 +18,36 @@
             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
+        <div class="mt-4 grid grid-cols-2 gap-4">
+    <div>
+        <x-input-label for="apellido_paterno" :value="__('Apellido Paterno')" />
+        <x-text-input id="apellido_paterno" class="block mt-1 w-full bg-gray-50" type="text" name="apellido_paterno" readonly />
+    </div>
+    <div>
+        <x-input-label for="apellido_materno" :value="__('Apellido Materno')" />
+        <x-text-input id="apellido_materno" class="block mt-1 w-full bg-gray-50" type="text" name="apellido_materno" readonly />
+    </div>
+</div>
 
+<div class="mt-4 grid grid-cols-3 gap-4">
+    <div>
+        <x-input-label for="departamento" :value="__('Departamento')" />
+        <x-text-input id="departamento" class="block mt-1 w-full bg-gray-50" type="text" name="departamento" readonly />
+    </div>
+    <div>
+        <x-input-label for="provincia" :value="__('Provincia')" />
+        <x-text-input id="provincia" class="block mt-1 w-full bg-gray-50" type="text" name="provincia" readonly />
+    </div>
+    <div>
+        <x-input-label for="distrito" :value="__('Distrito')" />
+        <x-text-input id="distrito" class="block mt-1 w-full bg-gray-50" type="text" name="distrito" readonly />
+    </div>
+</div>
+
+<div class="mt-4">
+    <x-input-label for="direccion" :value="__('Dirección')" />
+    <x-text-input id="direccion" class="block mt-1 w-full bg-gray-50" type="text" name="direccion" readonly />
+</div>
         <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />
@@ -63,33 +92,32 @@
 <script>
     document.getElementById('btn-validar-dni').addEventListener('click', async () => {
         const dni = document.getElementById('dni').value;
-        const nombreInput = document.getElementById('name');
         const btn = document.getElementById('btn-validar-dni');
 
         if (dni.length !== 8) return alert('El DNI debe tener 8 dígitos');
 
-        // Efecto visual "Cargando"
         btn.disabled = true;
         btn.innerText = 'Buscando...';
-        nombreInput.value = 'Consultando RENIEC...';
 
         try {
-            const response = await fetch(`/consulta-dni/${dni}`);
-            const data = await response.json();
+            const response = await fetch(`/dni/info/${dni}`);
+            const result = await response.json();
 
-            if (data.success) {
-                // ¡Éxito! Llenamos el nombre y bloqueamos el campo
-                nombreInput.value = data.nombre_completo;
-                nombreInput.readOnly = true; 
-                nombreInput.classList.add('bg-gray-100'); // Color gris para indicar bloqueado
+            if (result.success) {
+                const info = result.data;
+                // Mapeo de campos
+                document.getElementById('name').value = info.nombres;
+                document.getElementById('apellido_paterno').value = info.apellido_paterno;
+                document.getElementById('apellido_materno').value = info.apellido_materno;
+                document.getElementById('departamento').value = info.departamento;
+                document.getElementById('provincia').value = info.provincia;
+                document.getElementById('distrito').value = info.distrito;
+                document.getElementById('direccion').value = info.direccion;
             } else {
-                alert('DNI no encontrado o servicio no disponible');
-                nombreInput.value = '';
-                nombreInput.readOnly = false;
+                alert('DNI no encontrado');
             }
         } catch (error) {
-            console.error(error);
-            alert('Error al conectar con el servidor');
+            alert('Error en la validación');
         } finally {
             btn.disabled = false;
             btn.innerText = 'Validar';

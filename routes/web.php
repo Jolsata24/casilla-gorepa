@@ -46,26 +46,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 use Illuminate\Support\Facades\Http;
 
-Route::get('/consulta-dni/{dni}', function ($dni) {
-    // 1. Token de prueba (Cámbialo por el tuyo propio cuando te registres)
-    // Te recomiendo registrarte en apisperu.com o apidni.com para obtener uno GRATIS.
-    $token = 'TU_TOKEN_AQUI'; 
+// ESTA ES LA RUTA QUE DEBE APARECER EN TU LISTA
+Route::get('/dni/info/{dni}', function ($dni) {
+    $token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDMzOCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImNvbnN1bHRvciJ9.jizzTXiQo8kYYWzUA0uM2jVvTh0KbO5byEbwoRlyNZA'; 
 
-    // 2. Conexión a la API (Ejemplo con ApisPeru, ajusta la URL si usas otro)
     $response = Http::withToken($token)
-                    ->get("https://api.apis.net.pe/v1/dni?numero={$dni}"); 
-                    // OJO: La URL cambia según el proveedor. Revisa su documentación.
+                    ->get("https://api.factiliza.com/v1/dni/info/{$dni}");
 
     if ($response->successful()) {
-        $data = $response->json();
-        
-        // 3. Devolvemos solo lo que nos interesa
-        // Ajustamos los campos según lo que devuelve ApisPeru
-        return response()->json([
-            'success' => true,
-            'nombre_completo' => $data['nombres'] . ' ' . $data['apellidoPaterno'] . ' ' . $data['apellidoMaterno']
-        ]);
+        $result = $response->json();
+        if (isset($result['data'])) {
+            return response()->json([
+                'success' => true,
+                'data' => $result['data'] // Enviamos todo el objeto
+            ]);
+        }
     }
-
-    return response()->json(['success' => false, 'message' => 'DNI no encontrado'], 404);
+    return response()->json(['success' => false], 404);
 });

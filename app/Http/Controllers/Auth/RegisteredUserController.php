@@ -27,26 +27,28 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    // app/Http/Controllers/Auth/RegisteredUserController.php
+public function store(Request $request)
 {
     $request->validate([
-        'dni' => ['required', 'string', 'size:8', 'unique:users'], // <--- Validación importante
+        'dni' => ['required', 'string', 'size:8', 'unique:users'], // Validación de unicidad
         'name' => ['required', 'string', 'max:255'],
         'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
         'password' => ['required', 'confirmed', Rules\Password::defaults()],
     ]);
 
     $user = User::create([
-        'dni' => $request->dni, // <--- Guardamos el DNI
-        'name' => $request->name,
-        'email' => $request->email,
-        'password' => Hash::make($request->password),
-    ]);
-
-    event(new Registered($user));
-
-    Auth::login($user);
-
-    return redirect(route('dashboard', absolute: false));
+    'dni' => $request->dni,
+    'name' => $request->name,
+    'apellido_paterno' => $request->apellido_paterno,
+    'apellido_materno' => $request->apellido_materno,
+    'departamento' => $request->departamento,
+    'provincia' => $request->provincia,
+    'distrito' => $request->distrito,
+    'direccion' => $request->direccion,
+    'email' => $request->email,
+    'password' => Hash::make($request->password),
+]);
+    // ... resto del código
 }
 }
