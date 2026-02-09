@@ -13,13 +13,15 @@ class Notificacion extends Model
     protected $table = 'notificaciones';
 
     protected $fillable = [
-        'user_id',
-        'asunto',
-        'mensaje',
-        'ruta_archivo_pdf',
-        'fecha_lectura',
-        'ip_lectura',
-    ];
+    'user_id',
+    'asunto',
+    'mensaje',
+    'ruta_archivo_pdf',
+    'fecha_lectura',
+    'ip_lectura',
+    'mtc_id',        // AÑADIR ESTO 
+    'leido_en_mtc',  // AÑADIR ESTO 
+];
 
     /**
      * Relación: Una notificación pertenece a un Usuario (Ciudadano)

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Notificacion;
 use Illuminate\Support\Facades\Storage;
-
+use App\Services\MtcService; // [
 class AdminNotificacionController extends Controller
 {
     // 1. Mostrar el formulario de envío
@@ -27,8 +27,7 @@ class AdminNotificacionController extends Controller
     return view('admin.crear', compact('usuarios', 'search'));
 }
 
-    // 2. Guardar la notificación y el archivo
-    public function store(Request $request)
+public function store(Request $request, MtcService $mtcService) // Inyectar aquí [cite: 6, 105]
 {
     $request->validate([
         'user_id' => 'required|exists:users,id',
@@ -38,7 +37,6 @@ class AdminNotificacionController extends Controller
 
     $ruta = $request->file('archivo')->store('notificaciones');
 
-    // 1. Guardamos en la BD
     $notificacion = Notificacion::create([
         'user_id' => $request->user_id,
         'asunto' => $request->asunto,
@@ -46,11 +44,21 @@ class AdminNotificacionController extends Controller
         'ruta_archivo_pdf' => $ruta,
     ]);
 
-    // 2. Buscamos al ciudadano y enviamos el correo
+    // LLAMADA AL MTC (Simulada o Real) [cite: 105]
     $usuario = User::find($request->user_id);
+    $resultadoMtc = $mtcService->enviarNotificacionExterna($usuario, $request->asunto, $request->mensaje, $ruta);
+
+    // Guardar el ID que nos da el MTC para seguimiento futuro [cite: 105, 106]
+    if ($resultadoMtc->successful()) {
+        $datos = $resultadoMtc->json();
+        $notificacion->update([
+            'mtc_id' => $datos['data']['idNotificacion'] ?? null
+        ]);
+    }
+
     Mail::to($usuario->email)->send(new NotificacionRecibida($notificacion));
 
-    return redirect()->route('admin.crear')->with('success', 'Notificación enviada y ciudadano avisado por correo.');
+    return redirect()->route('admin.crear')->with('success', 'Notificación enviada localmente y a Casilla MTC.');
 }
     // app/Http/Controllers/AdminNotificacionController.php
 

@@ -1,25 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Api\MtcCallbackController; // 
 
-Route::get('/consulta-dni/{dni}', function ($dni) {
-    // Obtenemos el token desde el archivo .env
-    $token = env('APIDNI_TOKEN');
+// ... ruta de DNI ...
 
-    // Hacemos la petición de forma elegante (estilo Laravel)
-    $response = Http::withToken($token)
-                    ->get("https://apidni.com/api/v2/dni/{$dni}");
-
-    if ($response->successful()) {
-        $data = $response->json();
-        
-        // Ajustamos la respuesta según lo que devuelve apidni.com
-        return response()->json([
-            'success' => true,
-            'nombre_completo' => $data['nombres'] . ' ' . $data['apellidoPaterno'] . ' ' . $data['apellidoMaterno']
-        ]);
-    }
-
-    return response()->json(['success' => false, 'message' => 'DNI no encontrado'], 404);
-}); 
+// Rutas obligatorias según el PDF (Capítulo 5) [cite: 326, 390]
+Route::post('/constancia-deposito', [MtcCallbackController::class, 'firmarDeposito']); // 
+Route::post('/constancia-lectura', [MtcCallbackController::class, 'firmarDeposito']);   // 
+Route::post('/acuse-lectura', [MtcCallbackController::class, 'acuseLectura']);         //

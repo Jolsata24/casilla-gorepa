@@ -1,3 +1,4 @@
+<?php
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -19,13 +20,15 @@ class MtcCallbackController extends Controller
 
     // 5.3 Acuse de Lectura 
     public function acuseLectura(Request $request)
-    {
-        // El MTC envía IdNotificacion y fechaAcuse 
-        Log::info("MTC: El ciudadano leyó la notificación: " . $request->IdNotificacion);
-        
-        // Aquí buscarías en tu DB y marcarías como LEÍDO
-        // Notificacion::where('mtc_id', $request->IdNotificacion)->update(['leido' => true]);
+{
+    $idNotificacionMtc = $request->input('IdNotificacion'); // [cite: 106, 387]
+    
+    // Buscar la notificación por el ID del MTC y marcarla como leída 
+    \App\Models\Notificacion::where('mtc_id', $idNotificacionMtc)
+        ->update(['leido_en_mtc' => true]);
 
-        return response()->json(['success' => true]);
-    }
+    Log::info("MTC: Confirmada lectura de notificación MTC ID: " . $idNotificacionMtc);
+
+    return response()->json(['success' => true]); // 
+}
 }
