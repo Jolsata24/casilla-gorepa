@@ -28,27 +28,34 @@ class RegisteredUserController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
     // app/Http/Controllers/Auth/RegisteredUserController.php
+// app/Http/Controllers/Auth/RegisteredUserController.php
 public function store(Request $request)
 {
     $request->validate([
-        'dni' => ['required', 'string', 'size:8', 'unique:users'], // Validación de unicidad
+        'dni' => ['required', 'string', 'size:8', 'unique:users'],
         'name' => ['required', 'string', 'max:255'],
+        'apellido_paterno' => ['required', 'string'], // Añade estas validaciones
+        'apellido_materno' => ['required', 'string'],
         'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
         'password' => ['required', 'confirmed', Rules\Password::defaults()],
     ]);
 
     $user = User::create([
-    'dni' => $request->dni,
-    'name' => $request->name,
-    'apellido_paterno' => $request->apellido_paterno,
-    'apellido_materno' => $request->apellido_materno,
-    'departamento' => $request->departamento,
-    'provincia' => $request->provincia,
-    'distrito' => $request->distrito,
-    'direccion' => $request->direccion,
-    'email' => $request->email,
-    'password' => Hash::make($request->password),
-]);
-    // ... resto del código
-}
+        'dni' => $request->dni,
+        'name' => $request->name,
+        'apellido_paterno' => $request->apellido_paterno,
+        'apellido_materno' => $request->apellido_materno,
+        'departamento' => $request->departamento,
+        'provincia' => $request->provincia,
+        'distrito' => $request->distrito,
+        'direccion' => $request->direccion,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+    ]);
+
+    event(new Registered($user));
+    Auth::login($user);
+
+    return redirect(route('dashboard', absolute: false));
+}  
 }
