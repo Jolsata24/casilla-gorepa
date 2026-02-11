@@ -7,25 +7,21 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased">
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-50">
-        <div>
-            <a href="/">
-                {{-- Aquí puedes ajustar el tamaño del logo --}}
-                <x-application-logo class="w-24 h-24 fill-current text-gray-500" />
-            </a>
+    <body class="font-sans text-gray-900 antialiased bg-[#f3f4f6]">
+        <div class="min-h-screen flex flex-col sm:justify-center items-center p-4">
+            {{-- Contenedor principal más ancho para el diseño dividido --}}
+            <div class="w-full sm:max-w-4xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden sm:rounded-3xl flex flex-col md:flex-row min-h-[600px]">
+                {{ $slot }}
+            </div>
+            
+            <p class="mt-6 text-xs text-gray-400 font-medium tracking-widest uppercase">
+                Gobierno Regional de Pasco
+            </p>
         </div>
-
-        <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-xl border border-gray-100 overflow-hidden sm:rounded-2xl">
-            {{ $slot }}
-        </div>
-    </div>
-</body>
+    </body>
 </html>

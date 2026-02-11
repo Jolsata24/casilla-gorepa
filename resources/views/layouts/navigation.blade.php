@@ -18,6 +18,16 @@
                         {{ __('Inicio') }}
                     </x-nav-link>
 
+                    <x-nav-link :href="route('admin.peticiones')" :active="request()->routeIs('admin.peticiones')" 
+        class="relative inline-flex items-center text-gorepa-600 font-bold">
+        {{ __('Peticiones de acceso') }}
+        {{-- Indicador de notificación opcional --}}
+        <span class="absolute top-2 -right-3 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gorepa-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-gorepa-500"></span>
+        </span>
+    </x-nav-link>
+
                     @if(Auth::user()->is_admin)
                         <x-nav-link :href="route('admin.crear')" :active="request()->routeIs('admin.crear')" class="text-white hover:text-cyan-100 transition">
                             {{ __('📤 Enviar Notificación') }}

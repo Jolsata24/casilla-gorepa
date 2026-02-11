@@ -12,26 +12,22 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-gray-50"> {{-- Fondo gris muy claro para resaltar el contenido --}}
-        <div class="min-h-screen">
-            
-            @include('layouts.navigation')
+    <body class="font-sans antialiased text-gray-900">
+    {{-- Fondo futurista con gradiente sutil --}}
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gorepa-50/30">
+        @include('layouts.navigation')
 
-            @isset($header)
-                <header class="bg-white shadow-sm border-b border-gray-200">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        <div class="flex items-center gap-3">
-                            {{-- Acento visual del GOREPA --}}
-                            <div class="w-1.5 h-6 bg-red-700 rounded-full"></div>
-                            {{ $header }}
-                        </div>
-                    </div>
-                </header>
-            @endisset
+        @isset($header)
+            <header class="bg-white/70 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
+                </div>
+            </header>
+        @endisset
 
-            <main>
-                {{ $slot }}
-            </main>
-        </div>
-    </body>
+        <main>
+            {{ $slot }}
+        </main>
+    </div>
+</body>
 </html>

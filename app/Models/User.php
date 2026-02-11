@@ -29,6 +29,7 @@ protected $fillable = [
     'email',
     'password',
     'is_admin',
+    'status',
 ];
     /**
      * The attributes that should be hidden for serialization.

@@ -4,18 +4,19 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\AdminNotificacionController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
 
-// Página de bienvenida
+// 1. PÁGINA DE BIENVENIDA
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Dashboard general de Breeze
+// 2. DASHBOARD GENERAL (Breeze)
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Perfil de usuario
+// 3. PERFIL DE USUARIO (Protegido por Auth)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -24,7 +25,7 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-// --- SECCIÓN: CIUDADANO (Casilla Electrónica) ---
+// 4. SECCIÓN: CIUDADANO (Casilla Electrónica GOREPA)
 Route::middleware(['auth'])->group(function () {
     Route::get('/casilla', [NotificacionController::class, 'index'])
         ->name('casilla.index');
@@ -33,20 +34,29 @@ Route::middleware(['auth'])->group(function () {
         ->name('casilla.descargar');
 });
 
-// --- SECCIÓN: ADMINISTRADOR (Envío GOREPA) ---
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin/notificaciones', [AdminNotificacionController::class, 'index'])
-        ->name('admin.index');
-    Route::get('/admin/enviar', [AdminNotificacionController::class, 'create'])
-        ->name('admin.crear');
+// 5. SECCIÓN PÚBLICA: SOLICITUD DE ACCESO
+// Estas rutas permiten a ciudadanos sin cuenta enviar sus datos para revisión
+// Nota: Requiere crear un SolicitudController o usar AdminNotificacionController
+Route::get('/solicitar-acceso', [AdminNotificacionController::class, 'createSolicitud'])->name('solicitud.create');
+Route::post('/solicitar-acceso', [AdminNotificacionController::class, 'storeSolicitud'])->name('solicitud.store');
 
-    Route::post('/admin/enviar', [AdminNotificacionController::class, 'store'])
-        ->name('admin.store');
+// 6. SECCIÓN: ADMINISTRADOR (Gestión GOREPA)
+// Usamos prefijo 'admin' para que todas las rutas empiecen con /admin/...
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    
+    // Gestión de Notificaciones
+    Route::get('/notificaciones', [AdminNotificacionController::class, 'index'])->name('admin.index');
+    Route::get('/enviar', [AdminNotificacionController::class, 'create'])->name('admin.crear');
+    Route::post('/enviar', [AdminNotificacionController::class, 'store'])->name('admin.store');
+
+    // Gestión de Peticiones de Acceso
+    Route::get('/peticiones', [AdminNotificacionController::class, 'peticiones'])->name('admin.peticiones');
+    
+    // RUTA PARA APROBAR: Cambia el estado del usuario para que pueda entrar
+    Route::post('/peticiones/aprobar/{id}', [AdminNotificacionController::class, 'aprobarUsuario'])->name('admin.aprobar');
 });
 
-use Illuminate\Support\Facades\Http;
-
-// ESTA ES LA RUTA QUE DEBE APARECER EN TU LISTA
+// 7. UTILIDADES: CONSULTA DE DNI (API Factiliza)
 Route::get('/dni/info/{dni}', function ($dni) {
     $token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDMzOCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImNvbnN1bHRvciJ9.jizzTXiQo8kYYWzUA0uM2jVvTh0KbO5byEbwoRlyNZA'; 
 
@@ -58,7 +68,7 @@ Route::get('/dni/info/{dni}', function ($dni) {
         if (isset($result['data'])) {
             return response()->json([
                 'success' => true,
-                'data' => $result['data'] // Enviamos todo el objeto
+                'data' => $result['data']
             ]);
         }
     }
