@@ -1,72 +1,146 @@
 <x-guest-layout>
-    {{-- LADO IZQUIERDO: Formulario de Acceso --}}
-    <div class="w-full md:w-1/2 p-10 lg:p-16 flex flex-col justify-center relative z-10 bg-white md:rounded-l-[2.5rem]">
-        <div class="mb-10 text-center md:text-left">
-            <div class="flex justify-center md:justify-start mb-6">
-                <img src="{{ asset('logo-gorepa.png') }}" alt="Logo GOREPA" class="h-20 w-auto object-contain">
-            </div>
-            <h2 class="text-3xl font-black text-gray-800 tracking-tight">Bienvenido</h2>
-            <p class="text-gray-500 mt-2 font-medium">Ingresa tus credenciales para acceder a la Casilla Electrónica.</p>
-        </div>
-
-        <x-auth-session-status class="mb-4" :status="session('status')" />
-
-        <form method="POST" action="{{ route('login') }}" class="space-y-6">
-            @csrf
-            
-            {{-- Campos de Email y Password (sin cambios) --}}
-            <div>
-                <x-input-label for="email" :value="__('Correo Institucional')" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 ml-1" />
-                <x-text-input id="email" class="block w-full border-gray-200 bg-gray-50/50 focus:bg-white focus:border-gorepa-500 focus:ring-gorepa-500 rounded-2xl py-3 transition-all" type="email" name="email" :value="old('email')" required autofocus />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="password" :value="__('Contraseña')" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 ml-1" />
-                <x-text-input id="password" class="block w-full border-gray-200 bg-gray-50/50 focus:bg-white focus:border-gorepa-500 focus:ring-gorepa-500 rounded-2xl py-3 transition-all" type="password" name="password" required />
-            </div>
-
-            <div class="flex items-center justify-between px-1">
-                <label for="remember_me" class="inline-flex items-center cursor-pointer">
-                    <input id="remember_me" type="checkbox" class="rounded-md border-gray-300 text-gorepa-500 focus:ring-gorepa-500" name="remember">
-                    <span class="ms-2 text-sm text-gray-600">Mantenerme conectado</span>
-                </label>
-                @if (Route::has('password.request'))
-                    <a class="text-sm text-gorepa-600 hover:text-gorepa-700 font-bold" href="{{ route('password.request') }}">¿Olvidaste tu clave?</a>
-                @endif
-            </div>
-
-            {{-- BOTÓN PRINCIPAL --}}
-            <button type="submit" class="w-full py-4 bg-gorepa-500 hover:bg-gorepa-600 text-white rounded-2xl font-bold uppercase tracking-widest shadow-xl shadow-gorepa-500/25 transition-all transform active:scale-95">
-                Iniciar Sesión
-            </button>
-
-            {{-- NUEVA SECCIÓN: SOLICITUD DE CITA --}}
-            <div class="pt-6 border-t border-gray-100">
-                <div class="text-center mb-4">
-                    <p class="text-gray-500 text-sm font-semibold italic">¿Primera vez aquí?</p>
-                </div>
-                
-                <a href="{{ route('solicitud.create') }}" class="w-full inline-flex justify-center items-center px-4 py-3 border-2 border-gorepa-500 text-gorepa-600 hover:bg-gorepa-50 rounded-2xl font-bold text-sm uppercase tracking-tight transition-all duration-200 text-center">
-                    Solicite una cita para obtener usuario y clave
-                </a>
-            </div>
-        </form>
-    </div>
-
-    {{-- LADO DERECHO: Imagen de Fondo GOREPA (Mismo diseño anterior) --}}
-    <div class="hidden md:flex md:w-1/2 relative items-center justify-center p-12 overflow-hidden md:rounded-r-[2.5rem]">
-        <img src="{{ asset('fondo-gorepa.jpg') }}" alt="Sede GORE Pasco" class="absolute inset-0 w-full h-full object-cover scale-105">
-        <div class="absolute inset-0 bg-gradient-to-t from-gorepa-600/90 to-gorepa-500/80 mix-blend-multiply"></div>
+    <div x-data="{ isRegister: false }" 
+         class="relative w-full max-w-[1100px] min-h-[600px] flex items-center justify-center p-4">
         
-        <div class="relative z-10 text-center">
-            <div class="inline-block mb-6">
-                 <img src="{{ asset('logo-gorepa.png') }}" alt="GOREPA" class="h-28 w-auto brightness-0 invert drop-shadow-lg">
+        {{-- 1. CONTENEDOR DE TEXTO (El mensaje que cambia de lado) --}}
+        <div class="absolute top-0 bottom-0 w-1/2 flex flex-col justify-center px-16 transition-all duration-700 ease-in-out z-10"
+             :class="isRegister ? 'right-0 items-end text-right' : 'left-0 items-start text-left'">
+            
+            <div class="space-y-8 text-white drop-shadow-md max-w-md">
+                {{-- Barra decorativa animada --}}
+                <div class="w-24 h-2 bg-gradient-to-r from-gorepa-400 to-gorepa-200 rounded-full shadow-lg transition-all duration-500"
+                     :class="isRegister ? 'ml-auto' : 'mr-auto'"></div>
+                
+                <template x-if="!isRegister">
+                    <div class="animate-fade-in space-y-6">
+                        <h1 class="text-5xl font-black leading-tight tracking-tight drop-shadow-xl">
+                            Plataforma <span class="text-gorepa-300">Digital</span><br>GORE Pasco
+                        </h1>
+                        <p class="text-lg text-white/90 font-medium leading-relaxed">
+                            Gestione sus notificaciones, expedientes y trámites de manera centralizada y segura.
+                        </p>
+                        <button @click="isRegister = true" class="group mt-4 px-8 py-3.5 border border-white/30 bg-white/10 hover:bg-white hover:text-gorepa-700 text-white rounded-2xl font-bold uppercase tracking-widest transition-all duration-300 backdrop-blur-sm shadow-lg flex items-center gap-3" :class="isRegister ? 'flex-row-reverse' : ''">
+                            <span>Solicitar Acceso</span>
+                            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    </div>
+                </template>
+
+                <template x-if="isRegister">
+                    <div class="animate-fade-in space-y-6">
+                        <h1 class="text-5xl font-black leading-tight tracking-tight drop-shadow-xl">
+                            ¿Ya tiene <br>una cuenta?
+                        </h1>
+                        <p class="text-lg text-white/90 font-medium leading-relaxed">
+                            Si ya cuenta con sus credenciales autorizadas, ingrese para revisar su bandeja.
+                        </p>
+                        <button @click="isRegister = false" class="group mt-4 px-8 py-3.5 border border-white/30 bg-white/10 hover:bg-white hover:text-gorepa-700 text-white rounded-2xl font-bold uppercase tracking-widest transition-all duration-300 backdrop-blur-sm shadow-lg flex items-center gap-3 ml-auto">
+                            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            <span>Iniciar Sesión</span>
+                        </button>
+                    </div>
+                </template>
             </div>
-            <h1 class="text-4xl font-black text-white mb-4 tracking-tight drop-shadow-md">GOBIERNO REGIONAL<br>DE PASCO</h1>
-            <div class="w-24 h-1.5 bg-white mx-auto rounded-full mb-6 shadow-sm"></div>
-            <p class="text-white text-lg font-semibold max-w-md mx-auto leading-relaxed drop-shadow-sm">
-                "Trabajando por el desarrollo y la integración de nuestra región."
-            </p>
         </div>
+
+        {{-- 2. TARJETA DEL FORMULARIO (Se desliza físicamente) --}}
+        {{-- Ajustamos la posición con 'left' y 'transform' para centrarla mejor --}}
+        <div class="absolute top-1/2 -translate-y-1/2 w-[440px] transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] z-20"
+             :class="isRegister ? 'left-[10%] lg:left-[5%]' : 'left-[calc(90%-440px)] lg:left-[calc(95%-440px)]'">
+            
+            <div class="relative bg-white/90 backdrop-blur-2xl border border-white/60 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] p-10 overflow-hidden">
+                
+                {{-- Decoración de fondo en la tarjeta --}}
+                <div class="absolute top-0 right-0 w-32 h-32 bg-gorepa-100 rounded-full blur-3xl -mr-10 -mt-10 opacity-60"></div>
+                <div class="absolute bottom-0 left-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl -ml-10 -mb-10 opacity-60"></div>
+
+                {{-- A. FORMULARIO LOGIN --}}
+                <div x-show="!isRegister" x-transition:enter="transition ease-out duration-500 delay-200" x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0" class="relative z-10">
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center justify-center w-12 h-12 bg-gorepa-50 rounded-xl text-gorepa-600 mb-4 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-black text-gray-800 tracking-tight">BIENVENIDO</h2>
+                        <p class="text-sm text-gray-500 font-medium mt-1">Ingrese sus credenciales de acceso</p>
+                    </div>
+
+                    <form method="POST" action="{{ route('login') }}" class="space-y-5">
+                        @csrf
+                        {{-- Email --}}
+                        <div class="group">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Usuario</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 group-focus-within:text-gorepa-500 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path></svg>
+                                </span>
+                                <input type="email" name="email" required class="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:border-gorepa-500 focus:ring-4 focus:ring-gorepa-500/10 transition-all outline-none font-medium text-gray-700 placeholder-gray-400" placeholder="ejemplo@regionpasco.gob.pe">
+                            </div>
+                        </div>
+
+                        {{-- Password --}}
+                        <div class="group">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Contraseña</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 group-focus-within:text-gorepa-500 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                </span>
+                                <input type="password" name="password" required class="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:border-gorepa-500 focus:ring-4 focus:ring-gorepa-500/10 transition-all outline-none font-medium text-gray-700 placeholder-••••••••">
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                @if (Route::has('password.request'))
+                                    <a class="text-xs font-bold text-gorepa-600 hover:text-gorepa-800 transition" href="{{ route('password.request') }}">¿Olvidó su clave?</a>
+                                @endif
+                            </div>
+                        </div>
+
+                        <button class="w-full py-4 bg-gradient-to-r from-gorepa-600 to-gorepa-500 hover:to-gorepa-600 text-white font-bold rounded-2xl shadow-lg shadow-gorepa-500/30 transform transition hover:-translate-y-0.5 active:translate-y-0 mt-2">
+                            INGRESAR
+                        </button>
+                    </form>
+                </div>
+
+                {{-- B. FORMULARIO SOLICITUD --}}
+                <div x-show="isRegister" x-transition:enter="transition ease-out duration-500 delay-200" x-transition:enter-start="opacity-0 -translate-x-10" x-transition:enter-end="opacity-100 translate-x-0" class="relative z-10" style="display: none;">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 rounded-xl text-blue-600 mb-3 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-black text-gray-800 tracking-tight">NUEVA CUENTA</h2>
+                        <p class="text-sm text-gray-500 font-medium">Solicitud de Casilla Electrónica</p>
+                    </div>
+
+                    <form method="POST" action="{{ route('solicitud.store') }}" class="space-y-4">
+                        @csrf
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1">
+                                <input type="text" name="dni" placeholder="DNI" maxlength="8" class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:border-gorepa-500 focus:ring-2 focus:ring-gorepa-500/20 text-sm font-medium transition-all text-center">
+                            </div>
+                            <div class="col-span-2">
+                                <input type="text" name="name" placeholder="Nombres" class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:border-gorepa-500 focus:ring-2 focus:ring-gorepa-500/20 text-sm font-medium transition-all">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" name="apellido_paterno" placeholder="Ap. Paterno" class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:border-gorepa-500 focus:ring-2 focus:ring-gorepa-500/20 text-sm font-medium transition-all">
+                            <input type="text" name="apellido_materno" placeholder="Ap. Materno" class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:border-gorepa-500 focus:ring-2 focus:ring-gorepa-500/20 text-sm font-medium transition-all">
+                        </div>
+
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            </span>
+                            <input type="email" name="email" placeholder="Correo Electrónico Personal" class="w-full pl-11 pr-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:border-gorepa-500 focus:ring-2 focus:ring-gorepa-500/20 text-sm font-medium transition-all">
+                        </div>
+
+                        <button class="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl shadow-lg transform transition hover:-translate-y-0.5 active:translate-y-0 mt-2">
+                            ENVIAR SOLICITUD
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 </x-guest-layout>

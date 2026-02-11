@@ -9,42 +9,36 @@ use Illuminate\Support\Facades\Storage;
 
 class NotificacionController extends Controller
 {
-    // 1. Mostrar la Bandeja de Entrada
     public function index()
     {
-        // Obtenemos solo las notificaciones del usuario logueado
-        // ordenadas de la más reciente a la más antigua
-        $notificaciones = Notificacion::where('user_id', Auth::id())
-                            ->orderBy('created_at', 'desc')
-                            ->get();
+        // 1. Notificaciones NO LEÍDAS (Prioridad Alta)
+        $nuevas = Notificacion::where('user_id', Auth::id())
+                              ->whereNull('fecha_lectura')
+                              ->orderBy('created_at', 'desc')
+                              ->get();
 
-        return view('casilla.index', compact('notificaciones'));
+        // 2. Historial (Ya leídas)
+        $historial = Notificacion::where('user_id', Auth::id())
+                                 ->whereNotNull('fecha_lectura')
+                                 ->orderBy('fecha_lectura', 'desc')
+                                 ->paginate(10);
+
+        return view('notificaciones.index', compact('nuevas', 'historial'));
     }
 
-    // 2. Descargar el PDF y Registrar la Lectura (Legal)
     public function descargar($id)
     {
-        $notificacion = Notificacion::findOrFail($id);
+        $notificacion = Notificacion::where('user_id', Auth::id())->findOrFail($id);
 
-        // SEGURIDAD: Verificar que la notificación sea del usuario actual
-        if ($notificacion->user_id !== Auth::id()) {
-            abort(403, 'Acceso denegado a este expediente.');
-        }
-
-        // LÓGICA LEGAL: Si es la primera vez que lo abre, registramos fecha e IP
-        if (is_null($notificacion->fecha_lectura)) {
+        // 1. Marcar como leído si es la primera vez
+        if ($notificacion->fecha_lectura == null) {
             $notificacion->update([
-                'fecha_lectura' => now(),
-                'ip_lectura' => request()->ip()
+                'fecha_lectura' => now()
             ]);
         }
 
-        // Verificar si el archivo realmente existe en el servidor
-        if (!Storage::exists($notificacion->ruta_archivo_pdf)) {
-            return back()->with('error', 'El archivo físico no se encuentra.');
-        }
-
-        // Descargar el archivo
-        return Storage::download($notificacion->ruta_archivo_pdf);
+        // 2. Descargar archivo
+        // Asegúrate que la ruta sea correcta (storage/app/...)
+        return response()->download(storage_path('app/' . $notificacion->ruta_archivo_pdf));
     }
 }
