@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use TCPDF; 
-
+use App\Http\Controllers\Controller;
+use App\Models\Bitacora;
 class AdminNotificacionController extends Controller
 {
     /**
@@ -20,7 +21,12 @@ class AdminNotificacionController extends Controller
      * Modificado para coincidir con la vista de "Ventanita de Notificaciones"
      */
     public function index()
-    {
+    {   
+        $registros = Bitacora::with('user')
+                        ->orderBy('created_at', 'desc')
+                        ->paginate(20);
+
+        return view('admin.bitacora', compact('registros'));
         // 1. Contadores para las tarjetas de resumen
         $enviadas = Notificacion::count();
         $leidas = Notificacion::whereNotNull('fecha_lectura')->count();

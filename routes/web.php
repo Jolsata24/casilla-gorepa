@@ -8,6 +8,7 @@ use App\Models\Notificacion;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\AdminBitacoraController;
 
 // 1. PÁGINA DE BIENVENIDA
 Route::get('/', function () {
@@ -44,43 +45,29 @@ Route::middleware(['auth'])->group(function () {
 // ... otras rutas ...
 
 // 5. SECCIÓN: ADMINISTRADOR (Gestión Completa)
+// ...
+// <--- 1. ASEGÚRATE DE QUE ESTO ESTÉ ARRIBA
+
+// ...
+
+// 5. SECCIÓN: ADMINISTRADOR
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     
-    // Panel Principal y Notificaciones
+    // BANDEJA (Historial de Notificaciones)
     Route::get('/notificaciones', [AdminNotificacionController::class, 'index'])->name('admin.index');
     
-    // Enviar Notificación (Formulario y Guardado)
+    // Enviar Notificación
     Route::get('/enviar', [AdminNotificacionController::class, 'create'])->name('admin.crear');
     Route::post('/enviar', [AdminNotificacionController::class, 'store'])->name('admin.store');
 
-    // Gestión de Peticiones de Acceso
+    // Peticiones
     Route::get('/peticiones', [AdminNotificacionController::class, 'peticiones'])->name('admin.peticiones');
-    
-    // ACCIÓN CLAVE: Aprobar y Generar PDF (Apunta a tu función 'aprobarYGenerarPdf')
-    Route::post('/peticiones/aprobar-pdf/{id}', [AdminNotificacionController::class, 'aprobarYGenerarPdf'])
-        ->name('admin.aprobar.pdf');
+    Route::post('/peticiones/aprobar-pdf/{id}', [AdminNotificacionController::class, 'aprobarYGenerarPdf'])->name('admin.aprobar.pdf');
+
+    // AUDITORÍA (Esta es la que te faltaba o estaba mal)
+    Route::get('/bitacora', [AdminBitacoraController::class, 'index'])->name('admin.bitacora');
 });
 
-// ... Rutas de API y Documento Seguro se mantienen igual ...
-// 7. UTILIDADES: CONSULTA DE DNI (API Factiliza)
-Route::get('/dni/info/{dni}', function ($dni) {
-    // Recuerda mover este token al .env en producción
-    $token = env('FACTILIZA_TOKEN', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDMzOCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImNvbnN1bHRvciJ9.jizzTXiQo8kYYWzUA0uM2jVvTh0KbO5byEbwoRlyNZA'); 
-
-    $response = Http::withToken($token)
-                    ->get("https://api.factiliza.com/v1/dni/info/{$dni}");
-
-    if ($response->successful()) {
-        $result = $response->json();
-        if (isset($result['data'])) {
-            return response()->json([
-                'success' => true,
-                'data' => $result['data']
-            ]);
-        }
-    }
-    return response()->json(['success' => false], 404);
-});
 
 // 8. DESCARGA SEGURA DE DOCUMENTOS (Nueva funcionalidad)
 // Esta ruta sirve los archivos desde storage/app/notificaciones (privado)

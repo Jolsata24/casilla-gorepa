@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Notificacion;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage; // <--- Asegúrate de que esto esté aquí
-
+use App\Models\Bitacora;
 class NotificacionController extends Controller
 {
     public function index()
@@ -27,11 +27,14 @@ class NotificacionController extends Controller
 
     public function descargar($id)
     {
-        // Buscamos la notificación asegurándonos que sea del usuario logueado
+        // Buscamos la notificación del usuario logueado
         $notificacion = Notificacion::where('user_id', Auth::id())->findOrFail($id);
 
-        // 1. Verificar si el archivo existe físicamente
+        // 1. Verificar existencia física
         if (!Storage::disk('local')->exists($notificacion->ruta_archivo_pdf)) {
+            // Opcional: Registrar error en bitácora si quieres ser muy estricto
+            Bitacora::registrar('ERROR_DESCARGA', "Archivo no encontrado para Notificación ID: $id");
+            
             return back()->with('error', 'El archivo físico no se encuentra en el servidor.');
         }
 
@@ -39,11 +42,17 @@ class NotificacionController extends Controller
         if ($notificacion->fecha_lectura == null) {
             $notificacion->update([
                 'fecha_lectura' => now(),
-                'ip_lectura' => request()->ip() // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
+                'ip_lectura' => request()->ip()
             ]);
         }
 
-        // 3. Descargar archivo
+        // 3. AUDITORÍA: Registrar el evento en la Bitácora
+        // Esto guarda: Quién, Qué hizo, Desde qué IP y Cuándo (created_at)
+        Bitacora::registrar('DESCARGA_PDF', "Descargó documento ID: {$notificacion->id} | Asunto: {$notificacion->asunto}");
+
+        // 4. Descargar archivo
         return Storage::disk('local')->download($notificacion->ruta_archivo_pdf);
     }
+
+    
 }

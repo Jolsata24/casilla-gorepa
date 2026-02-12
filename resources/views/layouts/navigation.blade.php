@@ -57,6 +57,9 @@
                         <x-nav-link :href="route('admin.crear')" :active="request()->routeIs('admin.crear')" class="font-bold tracking-wide text-xs uppercase">
                             {{ __('Redactar') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.bitacora')" :active="request()->routeIs('admin.bitacora')">
+            {{ __('Auditoría / Logs') }}
+        </x-nav-link>
                     @else
                         <x-nav-link :href="route('casilla.index')" :active="request()->routeIs('casilla.index')" class="font-bold tracking-wide text-xs uppercase">
                             {{ __('Mis Documentos') }}
