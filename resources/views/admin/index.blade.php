@@ -51,66 +51,64 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 @if($notificaciones->count() > 0)
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50/50 border-b border-gray-100 text-xs uppercase font-bold text-gray-400 tracking-wider">
-                                    <th class="px-6 py-4">Fecha Envío</th>
-                                    <th class="px-6 py-4">Destinatario</th>
-                                    <th class="px-6 py-4">Asunto / Documento</th>
-                                    <th class="px-6 py-4 text-center">Estado</th>
-                                    <th class="px-6 py-4 text-right">Archivo</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                @foreach($notificaciones as $noti)
-                                <tr class="hover:bg-gray-50 transition-colors group">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div class="font-bold text-gray-700">{{ $noti->created_at->format('d/m/Y') }}</div>
-                                        <div class="text-xs">{{ $noti->created_at->format('H:i A') }}</div>
-                                    </td>
-                                    
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 rounded-full bg-gorepa-100 text-gorepa-600 flex items-center justify-center font-bold text-xs mr-3">
-                                                {{ substr($noti->user->name, 0, 1) }}
-                                            </div>
-                                            <div>
-                                                <div class="text-sm font-bold text-gray-800">{{ $noti->user->name }}</div>
-                                                <div class="text-xs text-gray-400">{{ $noti->user->dni }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
+                        <table class="min-w-full divide-y divide-gray-200">
+    <thead>
+        <tr>
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinatario</th>
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asunto</th>
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
+            {{-- 1. AGREGA ESTE ENCABEZADO --}}
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Lectura</th> 
+            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+        </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+        @foreach($notificaciones as $notificacion)
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ $notificacion->created_at->format('d/m/Y H:i') }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {{ $notificacion->user->name }} {{ $notificacion->user->apellido_paterno }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ $notificacion->asunto }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                @if($notificacion->ruta_archivo_pdf)
+                    <a href="{{ route('documento.seguro', $notificacion->id) }}" target="_blank" class="text-blue-600 hover:text-blue-900 font-bold underline">
+                        Ver PDF
+                    </a>
+                @else
+                    <span class="text-red-500 text-xs">--</span>
+                @endif
+            </td>
+            
+            {{-- 2. AGREGA ESTA CELDA PARA VER LA IP --}}
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                @if($notificacion->ip_lectura)
+                    {{ $notificacion->ip_lectura }}
+                @else
+                    <span class="text-gray-300">--</span>
+                @endif
+            </td>
 
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm font-medium text-gray-800">{{ $noti->asunto }}</div>
-                                        <div class="text-xs text-gray-400 truncate max-w-[200px]">{{ Str::limit($noti->mensaje, 30) }}</div>
-                                    </td>
-
-                                    <td class="px-6 py-4 text-center">
-                                        @if($noti->fecha_lectura)
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                Leído
-                                            </span>
-                                            <div class="text-[10px] text-gray-400 mt-1">{{ $noti->fecha_lectura }}</div>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500 gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                Enviado
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <td class="px-6 py-4 text-right">
-                                        <a href="{{ route('casilla.descargar', $noti->id) }}" class="text-gorepa-600 hover:text-gorepa-800 font-bold text-xs inline-flex items-center hover:underline">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                            Ver PDF
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                @if($notificacion->fecha_lectura)
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Leído
+                    </span>
+                @else
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        Pendiente
+                    </span>
+                @endif
+            </td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
                         
                         {{-- Paginación bonita --}}
                         <div class="px-6 py-4 border-t border-gray-100">

@@ -46,6 +46,11 @@
                     </x-nav-link>
                     
                     @if(Auth::user()->is_admin)
+                        {{-- CORRECCIÓN: AGREGADO ENLACE A BANDEJA DE SALIDA --}}
+                        <x-nav-link :href="route('admin.index')" :active="request()->routeIs('admin.index')" class="font-bold tracking-wide text-xs uppercase">
+                            {{ __('Bandeja / Historial') }}
+                        </x-nav-link>
+
                         <x-nav-link :href="route('admin.peticiones')" :active="request()->routeIs('admin.peticiones')" class="font-bold tracking-wide text-xs uppercase">
                             {{ __('Accesos') }}
                         </x-nav-link>
@@ -189,6 +194,11 @@
             </x-responsive-nav-link>
             
             @if(Auth::user()->is_admin)
+                {{-- CORRECCIÓN: AGREGADO ENLACE MÓVIL A BANDEJA DE SALIDA --}}
+                <x-responsive-nav-link :href="route('admin.index')" :active="request()->routeIs('admin.index')">
+                    {{ __('Bandeja / Historial') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('admin.peticiones')" :active="request()->routeIs('admin.peticiones')" class="flex justify-between items-center">
                     {{ __('Accesos / Peticiones') }}
                     @if($tienePendientes)

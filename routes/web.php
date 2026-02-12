@@ -3,7 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\AdminNotificacionController;
-use App\Http\Controllers\SolicitudController; // Nuevo Controlador
+use App\Http\Controllers\SolicitudController;
 use App\Models\Notificacion;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Http;
@@ -15,14 +15,16 @@ Route::get('/', function () {
 });
 
 // 2. SOLICITUD DE ACCESO (PÚBLICO)
-// El ciudadano llena sus datos aquí
 Route::get('/solicitar-acceso', [SolicitudController::class, 'create'])->name('solicitud.create');
 Route::post('/solicitar-acceso', [SolicitudController::class, 'store'])->name('solicitud.store');
 
-
 // 3. DASHBOARD Y PERFIL (Auth)
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    // Redireccionar según rol
+    if(auth()->user()->is_admin) {
+        return redirect()->route('admin.peticiones');
+    }
+    return redirect()->route('casilla.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -39,36 +41,27 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/notificacion/descargar/{id}', [NotificacionController::class, 'descargar'])->name('casilla.descargar');
 });
 
-// 5. ADMINISTRADOR: Gestión
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
-    // Notificaciones
-    Route::get('/notificaciones', [AdminNotificacionController::class, 'index'])->name('admin.index');
-    Route::get('/enviar', [AdminNotificacionController::class, 'create'])->name('admin.crear');
-    Route::post('/enviar', [AdminNotificacionController::class, 'store'])->name('admin.store');
+// ... otras rutas ...
 
-    // Peticiones
-    Route::get('/peticiones', [AdminNotificacionController::class, 'peticiones'])->name('admin.peticiones');
-    
-    // ACCIÓN NUEVA: Aprobar y Generar PDF con Credenciales
-    Route::post('/peticiones/aprobar-pdf/{id}', [AdminNotificacionController::class, 'aprobarYGenerarPdf'])
-        ->name('admin.aprobar.pdf');
-});
-
-// 6. SECCIÓN: ADMINISTRADOR (Gestión GOREPA)
+// 5. SECCIÓN: ADMINISTRADOR (Gestión Completa)
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     
-    // Gestión de Notificaciones
+    // Panel Principal y Notificaciones
     Route::get('/notificaciones', [AdminNotificacionController::class, 'index'])->name('admin.index');
+    
+    // Enviar Notificación (Formulario y Guardado)
     Route::get('/enviar', [AdminNotificacionController::class, 'create'])->name('admin.crear');
     Route::post('/enviar', [AdminNotificacionController::class, 'store'])->name('admin.store');
 
     // Gestión de Peticiones de Acceso
     Route::get('/peticiones', [AdminNotificacionController::class, 'peticiones'])->name('admin.peticiones');
     
-    // Aprobar usuario
-    Route::post('/peticiones/aprobar/{id}', [AdminNotificacionController::class, 'aprobarUsuario'])->name('admin.aprobar');
+    // ACCIÓN CLAVE: Aprobar y Generar PDF (Apunta a tu función 'aprobarYGenerarPdf')
+    Route::post('/peticiones/aprobar-pdf/{id}', [AdminNotificacionController::class, 'aprobarYGenerarPdf'])
+        ->name('admin.aprobar.pdf');
 });
 
+// ... Rutas de API y Documento Seguro se mantienen igual ...
 // 7. UTILIDADES: CONSULTA DE DNI (API Factiliza)
 Route::get('/dni/info/{dni}', function ($dni) {
     // Recuerda mover este token al .env en producción
