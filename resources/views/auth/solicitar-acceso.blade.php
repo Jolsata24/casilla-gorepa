@@ -28,8 +28,37 @@
 
             {{-- Mensajes de Error/Éxito --}}
             @if (session('status'))
-                <div class="mb-4 font-medium text-sm text-green-600 bg-green-50 p-4 rounded-lg border border-green-200">
-                    {{ session('status') }}
+                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm flex items-start gap-3">
+                    <svg class="w-6 h-6 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h3 class="font-bold text-green-800 text-sm">¡Solicitud Exitosa!</h3>
+                        <p class="text-green-700 text-xs mt-1">{{ session('status') }}</p>
+                    </div>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm flex items-start gap-3">
+                    <svg class="w-6 h-6 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h3 class="font-bold text-red-800 text-sm">No se pudo registrar</h3>
+                        <p class="text-red-700 text-xs mt-1">{{ session('error') }}</p>
+                    </div>
+                </div>
+            @endif
+
+            {{-- ALERTA DE ERRORES DE VALIDACIÓN (LISTA DE ERRORES) --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg shadow-sm">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <h3 class="font-bold text-orange-800 text-sm">Corrija los siguientes errores:</h3>
+                    </div>
+                    <ul class="list-disc list-inside text-xs text-orange-700 space-y-1 ml-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 

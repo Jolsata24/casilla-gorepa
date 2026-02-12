@@ -22,6 +22,7 @@ protected $fillable = [
     'name',
     'apellido_paterno',
     'apellido_materno',
+    'celular',
     'departamento',
     'provincia',
     'distrito',
