@@ -16,49 +16,57 @@ class SolicitudController extends Controller
         return view('auth.solicitar-acceso');
     }
 
-    public function store(Request $request)
-    {
-        // 1. Validación con Mensajes Personalizados
-        $validated = $request->validate([
-            'dni' => 'required|string|size:8|unique:users,dni',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'apellido_paterno' => 'required|string',
-            'apellido_materno' => 'required|string',
-            'celular' => 'nullable|string|max:15',
-        ], [
-            // Mensajes de error específicos en español
-            'dni.unique' => 'Este DNI ya se encuentra registrado en el sistema. Intente iniciar sesión.',
-            'dni.size' => 'El DNI debe tener exactamente 8 dígitos.',
-            'email.unique' => 'Este correo electrónico ya está siendo usado por otro usuario.',
-            'email.email' => 'Ingrese un correo electrónico válido.',
-            'required' => 'El campo :attribute es obligatorio.',
+    // En app/Http/Controllers/SolicitudController.php
+
+public function store(Request $request)
+{
+    // 1. Validación: Aceptamos que los campos de dirección vengan o no
+    $validated = $request->validate([
+        'dni' => 'required|string|size:8|unique:users,dni',
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email',
+        'apellido_paterno' => 'required|string',
+        'apellido_materno' => 'required|string',
+        'celular' => 'required|string|max:15', // Celular obligatorio
+        'departamento' => 'nullable|string',
+        'provincia' => 'nullable|string',
+        'distrito' => 'nullable|string',
+        'direccion' => 'nullable|string',
+    ], [
+        'dni.unique' => 'Este DNI ya está registrado. Por favor inicie sesión.',
+        'dni.size' => 'El DNI debe tener 8 dígitos.',
+        'email.unique' => 'El correo ya está en uso.',
+        'required' => 'El campo :attribute es obligatorio.',
+    ]);
+
+    try {
+        // 2. Crear usuario con TODOS los datos (¡Aquí faltaban las líneas!)
+        User::create([
+            'dni' => $request->dni,
+            'name' => $request->name,
+            'apellido_paterno' => $request->apellido_paterno,
+            'apellido_materno' => $request->apellido_materno,
+            'email' => $request->email,
+            'celular' => $request->celular,
+            
+            // --- INICIO DE LAS LÍNEAS FALTANTES ---
+            'departamento' => $request->departamento,
+            'provincia' => $request->provincia,
+            'distrito' => $request->distrito,
+            'direccion' => $request->direccion,
+            // --- FIN DE LAS LÍNEAS FALTANTES ---
+            
+            'password' => Hash::make(Str::random(30)),
+            'status' => 0,    // 0 = Pendiente de aprobación
+            'is_admin' => 0,
         ]);
 
-        try {
-            // 2. Intentar crear el usuario
-            User::create([
-                'dni' => $request->dni,
-                'name' => $request->name,
-                'apellido_paterno' => $request->apellido_paterno,
-                'apellido_materno' => $request->apellido_materno,
-                'email' => $request->email,
-                'celular' => $request->celular,
-                'password' => Hash::make(Str::random(30)), // Clave temporal
-                'status' => 0,    // Pendiente
-                'is_admin' => 0,
-            ]);
+        return back()->with('status', '¡Solicitud enviada correctamente!');
 
-            // 3. Éxito: Regresar al formulario con mensaje verde
-            return back()->with('status', '¡Solicitud enviada correctamente! Se le notificará al correo cuando sus credenciales sean generadas.');
-
-        } catch (\Exception $e) {
-            // 4. Error Inesperado (BD caída, etc): Regresar con mensaje rojo
-            // Log::error("Error al registrar solicitud: " . $e->getMessage()); // Opcional para debug interno
-            
-            return back()
-                ->withInput() // Mantiene lo que el usuario escribió
-                ->with('error', 'Hubo un error interno al intentar registrar su solicitud. Por favor intente más tarde.');
-        }
+    } catch (\Exception $e) {
+        // Esto sirve para ver el error real si falla
+        \Illuminate\Support\Facades\Log::error("Error al registrar: " . $e->getMessage());
+        return back()->withInput()->with('error', 'Error interno: ' . $e->getMessage());
     }
+}
 }

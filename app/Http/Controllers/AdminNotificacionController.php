@@ -39,14 +39,16 @@ class AdminNotificacionController extends Controller
      * 2. PETICIONES DE ACCESO
      */
     public function peticiones()
-    {
-        $solicitudes = User::where('status', 0)
-                           ->where('is_admin', false)
-                           ->orderBy('created_at', 'asc') 
-                           ->get();
+{
+    // Obtenemos SOLO los usuarios que tienen status 0 (Pendientes)
+    // y que NO son administradores
+    $solicitudes = \App\Models\User::where('status', 0)
+                                   ->where('is_admin', 0) 
+                                   ->orderBy('created_at', 'desc')
+                                   ->get();
 
-        return view('admin.peticiones', compact('solicitudes'));
-    }
+    return view('admin.peticiones', compact('solicitudes'));
+}
 
     /**
      * 3. FORMULARIO DE REDACCIÓN
@@ -71,41 +73,48 @@ class AdminNotificacionController extends Controller
     /**
      * 4. PROCESAR ENVÍO
      */
-    public function store(Request $request, MtcService $mtcService)
+    public function store(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'asunto'  => 'required|string|max:255',
-            'mensaje' => 'required|string',
-            'archivo' => 'required|file|mimes:pdf|max:10240', 
+        // 1. Validación: Incluimos los campos de dirección como opcionales (nullable)
+        $validated = $request->validate([
+            'dni' => 'required|string|size:8|unique:users,dni',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'apellido_paterno' => 'required|string',
+            'apellido_materno' => 'required|string',
+            'celular' => 'required|string|max:15',
+            // ESTOS SON LOS CAMPOS QUE FALTABAN:
+            'departamento' => 'nullable|string',
+            'provincia' => 'nullable|string',
+            'distrito' => 'nullable|string',
+            'direccion' => 'nullable|string',
         ]);
 
-        $ruta = $request->file('archivo')->store('notificaciones', 'local');
-
-        $notificacion = Notificacion::create([
-            'user_id'          => $request->user_id,
-            'asunto'           => $request->asunto,
-            'mensaje'          => $request->mensaje,
-            'ruta_archivo_pdf' => $ruta,
-        ]);
-
-        $usuario = User::find($request->user_id);
-        
-        // Intento silencioso al MTC (Si falla, sigue)
         try {
-             $resultadoMtc = $mtcService->enviarNotificacionExterna($usuario, $request->asunto, $request->mensaje, $ruta);
-             if ($resultadoMtc->successful()) {
-                $datos = $resultadoMtc->json();
-                $notificacion->update(['mtc_id' => $datos['data']['idNotificacion'] ?? null]);
-             }
-        } catch (\Exception $e) {}
+            // 2. Guardar en Base de Datos
+            \App\Models\User::create([
+                'dni' => $request->dni,
+                'name' => $request->name,
+                'apellido_paterno' => $request->apellido_paterno,
+                'apellido_materno' => $request->apellido_materno,
+                'email' => $request->email,
+                'celular' => $request->celular,
+                // AGREGAMOS LA DIRECCIÓN AL CREAR EL USUARIO:
+                'departamento' => $request->departamento,
+                'provincia' => $request->provincia,
+                'distrito' => $request->distrito,
+                'direccion' => $request->direccion,
+                
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(30)),
+                'status' => 0,
+                'is_admin' => 0,
+            ]);
 
-        // Envío de correo
-        try {
-            Mail::to($usuario->email)->send(new NotificacionRecibida($notificacion));
-        } catch (\Exception $e) {}
+            return back()->with('status', '¡Solicitud enviada correctamente!');
 
-        return redirect()->route('admin.crear')->with('success', 'Notificación enviada correctamente.');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Error interno: ' . $e->getMessage());
+        }
     }
     
     /**
