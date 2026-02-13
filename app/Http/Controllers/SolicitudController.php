@@ -16,32 +16,27 @@ class SolicitudController extends Controller
         return view('auth.solicitar-acceso');
     }
 
-    // En app/Http/Controllers/SolicitudController.php
-
-public function store(Request $request)
-{
-    // 1. Validación: Aceptamos que los campos de dirección vengan o no
-    $validated = $request->validate([
+    public function store(Request $request)
+    {   
+        
+        // 1. Validación (Aseguramos que celular sea obligatorio)
+        $validated = $request->validate([
         'dni' => 'required|string|size:8|unique:users,dni',
         'name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users,email',
         'apellido_paterno' => 'required|string',
         'apellido_materno' => 'required|string',
-        'celular' => 'required|string|max:15', // Celular obligatorio
+        'celular' => 'required|string|max:15', // Asegúrate que este input exista en el formulario
+        
+        // CAMBIO IMPORTANTE: Ponlos como 'nullable' para evitar rebotes silenciosos
         'departamento' => 'nullable|string',
         'provincia' => 'nullable|string',
         'distrito' => 'nullable|string',
         'direccion' => 'nullable|string',
-    ], [
-        'dni.unique' => 'Este DNI ya está registrado. Por favor inicie sesión.',
-        'dni.size' => 'El DNI debe tener 8 dígitos.',
-        'email.unique' => 'El correo ya está en uso.',
-        'required' => 'El campo :attribute es obligatorio.',
     ]);
 
     try {
-        // 2. Crear usuario con TODOS los datos (¡Aquí faltaban las líneas!)
-        User::create([
+        $user = User::create([
             'dni' => $request->dni,
             'name' => $request->name,
             'apellido_paterno' => $request->apellido_paterno,
@@ -49,24 +44,22 @@ public function store(Request $request)
             'email' => $request->email,
             'celular' => $request->celular,
             
-            // --- INICIO DE LAS LÍNEAS FALTANTES ---
-            'departamento' => $request->departamento,
-            'provincia' => $request->provincia,
-            'distrito' => $request->distrito,
-            'direccion' => $request->direccion,
-            // --- FIN DE LAS LÍNEAS FALTANTES ---
+            // Usamos el operador null coalescing (??) por seguridad
+            'departamento' => $request->departamento ?? 'No registrado',
+            'provincia' => $request->provincia ?? 'No registrado',
+            'distrito' => $request->distrito ?? 'No registrado',
+            'direccion' => $request->direccion ?? 'No registrado',
             
             'password' => Hash::make(Str::random(30)),
-            'status' => 0,    // 0 = Pendiente de aprobación
+            'status' => 0,
             'is_admin' => 0,
         ]);
 
-        return back()->with('status', '¡Solicitud enviada correctamente!');
+        return redirect()->route('login')->with('status', '¡Solicitud enviada! Espere aprobación.');
 
     } catch (\Exception $e) {
-        // Esto sirve para ver el error real si falla
-        \Illuminate\Support\Facades\Log::error("Error al registrar: " . $e->getMessage());
-        return back()->withInput()->with('error', 'Error interno: ' . $e->getMessage());
+        // Esto te mostrará el error real en pantalla si la BD falla
+        return back()->withInput()->with('error', 'Error BD: ' . $e->getMessage());
     }
-}
+    }
 }

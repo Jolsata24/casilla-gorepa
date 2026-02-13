@@ -4,7 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\AdminNotificacionController;
 use App\Http\Controllers\SolicitudController;
-use App\Http\Controllers\AdminBitacoraController; // Importante para la auditoría
+use App\Http\Controllers\AdminBitacoraController;
+use App\Http\Controllers\CasillaController; // <--- ¡IMPORTANTE! Agregado
 use App\Models\Notificacion;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Http;
@@ -19,11 +20,11 @@ Route::get('/', function () {
 Route::get('/solicitar-acceso', [SolicitudController::class, 'create'])->name('solicitud.create');
 Route::post('/solicitar-acceso', [SolicitudController::class, 'store'])->name('solicitud.store');
 
-// 3. DASHBOARD Y PERFIL (Requiere Login)
+// 3. DASHBOARD Y PERFIL (Redireccionamiento inteligente)
 Route::get('/dashboard', function () {
     // Redireccionar según rol
     if(auth()->user()->is_admin) {
-        return redirect()->route('admin.peticiones');
+        return redirect()->route('admin.peticiones'); // O admin.index según prefieras
     }
     return redirect()->route('casilla.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -36,10 +37,13 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-// 4. CIUDADANO: Casilla Electrónica
+// 4. CIUDADANO: Casilla Electrónica (NUEVO SISTEMA TIPO GMAIL)
+// He eliminado el bloque antiguo de 'NotificacionController' porque este lo reemplaza.
 Route::middleware(['auth'])->group(function () {
-    Route::get('/casilla', [NotificacionController::class, 'index'])->name('casilla.index');
-    Route::get('/notificacion/descargar/{id}', [NotificacionController::class, 'descargar'])->name('casilla.descargar');
+    Route::get('/casilla', [CasillaController::class, 'index'])->name('casilla.index');
+    Route::post('/casilla/etiqueta', [CasillaController::class, 'crearEtiqueta'])->name('casilla.etiqueta.store');
+    Route::post('/casilla/mover/{id}', [CasillaController::class, 'mover'])->name('casilla.mover');
+    Route::post('/casilla/destacar/{id}', [CasillaController::class, 'toggleDestacado'])->name('casilla.destacar');
 });
 
 // 5. SECCIÓN: ADMINISTRADOR (Gestión Completa)
@@ -73,6 +77,14 @@ Route::get('/documento/seguro/{id}', function ($id) {
     // Verificar existencia física
     if (!Storage::disk('local')->exists($notificacion->ruta_archivo_pdf)) {
         abort(404, 'El archivo no se encuentra en el servidor.');
+    }
+
+    // Registrar lectura si es el dueño quien descarga (Opcional, pero recomendado)
+    if (auth()->id() === $notificacion->user_id && is_null($notificacion->fecha_lectura)) {
+        $notificacion->update([
+            'fecha_lectura' => now(),
+            'ip_lectura' => request()->ip()
+        ]);
     }
 
     return Storage::disk('local')->download($notificacion->ruta_archivo_pdf);

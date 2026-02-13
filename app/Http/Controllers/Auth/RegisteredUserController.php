@@ -28,35 +28,43 @@ class RegisteredUserController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'dni' => ['required', 'string', 'size:8', 'unique:users'],
-            'name' => ['required', 'string', 'max:255'],
-            'apellido_paterno' => ['required', 'string', 'max:255'],
-            'apellido_materno' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            // Agrega aquí validaciones para departamento, provincia, etc. si son obligatorios
-        ]);
+{
+    $request->validate([
+        'dni' => ['required', 'string', 'size:8', 'unique:users'],
+        'name' => ['required', 'string', 'max:255'],
+        'apellido_paterno' => ['required', 'string', 'max:255'],
+        'apellido_materno' => ['required', 'string', 'max:255'],
+        // AGREGAR VALIDACIÓN DE CELULAR
+        'celular' => ['required', 'string', 'max:15'], 
+        'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        // AGREGAR VALIDACIÓN DE DIRECCIÓN PARA EVITAR DATOS VACÍOS
+        'departamento' => ['nullable', 'string'],
+        'provincia' => ['nullable', 'string'],
+        'distrito' => ['nullable', 'string'],
+        'direccion' => ['nullable', 'string'],
+    ]);
 
-        $user = User::create([
-            'dni' => $request->dni,
-            'name' => $request->name,
-            'apellido_paterno' => $request->apellido_paterno,
-            'apellido_materno' => $request->apellido_materno,
-            'departamento' => $request->departamento,
-            'provincia' => $request->provincia,
-            'distrito' => $request->distrito,
-            'direccion' => $request->direccion,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'status' => 0, // IMPORTANTE: Se crea como pendiente
-        ]);
+    $user = User::create([
+        'dni' => $request->dni,
+        'name' => $request->name,
+        'apellido_paterno' => $request->apellido_paterno,
+        'apellido_materno' => $request->apellido_materno,
+        // AGREGAR EL CELULAR AQUÍ
+        'celular' => $request->celular, 
+        'departamento' => $request->departamento,
+        'provincia' => $request->provincia,
+        'distrito' => $request->distrito,
+        'direccion' => $request->direccion,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'status' => 0,
+        // IMPORTANTE: Definir is_admin explícitamente para evitar error si no tiene default en DB
+        'is_admin' => 0, 
+    ]);
 
-        event(new Registered($user));
+    event(new Registered($user));
 
-        // IMPORTANTE: NO hacemos Auth::login($user);
-        
-        return redirect()->route('login')->with('status', 'Su solicitud ha sido enviada. Por favor espere a que el administrador apruebe su cuenta para iniciar sesión.');
-    }
+    return redirect()->route('login')->with('status', 'Su solicitud ha sido enviada. Espere aprobación.');
+}
 }
