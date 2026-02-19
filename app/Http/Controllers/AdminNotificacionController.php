@@ -223,21 +223,26 @@ class AdminNotificacionController extends Controller
      * Permite al administrador descargar la constancia de lectura (Cargo)
      */
     public function descargarCargo($id)
-    {
-        $notificacion = Notificacion::findOrFail($id);
+{
+    $notificacion = Notificacion::findOrFail($id);
 
-        if (!$notificacion->fecha_lectura) {
-            return back()->with('error', 'El ciudadano aún no ha leído este documento.');
-        }
-
-        // Reconstruimos el nombre del archivo tal como lo generamos en el paso anterior
-        $nombreArchivo = "cargo_recepcion_{$notificacion->id}_{$notificacion->user->dni}.pdf";
-        $path = "cargos/{$nombreArchivo}";
-
-        if (!Storage::exists($path)) {
-             return back()->with('error', 'El cargo no se encuentra físico (quizás fue leído antes de implementar el sistema de cargos).');
-        }
-
-        return Storage::download($path, $nombreArchivo);
+    if (!$notificacion->fecha_lectura) {
+        return back()->with('error', 'El ciudadano aún no ha leído este documento.');
     }
+
+    // 1. Determinar el número de documento correcto (RUC o DNI)
+    $esRUC = $notificacion->user->tipo_documento === 'RUC';
+    $numDoc = $esRUC ? $notificacion->user->ruc : $notificacion->user->dni;
+
+    // 2. Reconstruir el nombre del archivo
+    $nombreArchivo = "cargo_recepcion_{$notificacion->id}_{$numDoc}.pdf";
+    $path = "cargos/{$nombreArchivo}";
+
+    // 3. Verificar en el disco 'local' explícitamente
+    if (!Storage::disk('local')->exists($path)) {
+            return back()->with('error', 'El cargo no se encuentra físico. Nombre buscado: ' . $nombreArchivo);
+    }
+
+    return Storage::disk('local')->download($path, $nombreArchivo);
+}
 }
