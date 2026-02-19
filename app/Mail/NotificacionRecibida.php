@@ -2,35 +2,26 @@
 
 namespace App\Mail;
 
-use App\Models\Notificacion;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class NotificacionRecibida extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $notificacion;
+    public $asuntoNotificacion;
+    public $nombreCiudadano;
 
-    public function __construct(Notificacion $notificacion)
+    public function __construct($asunto, $nombre)
     {
-        $this->notificacion = $notificacion;
+        $this->asuntoNotificacion = $asunto;
+        $this->nombreCiudadano = $nombre;
     }
 
-    public function envelope(): Envelope
+    public function build()
     {
-        return new Envelope(
-            subject: 'Nueva Notificación Electrónica - GOREPA',
-        );
-    }
-
-    public function content(): Content
-    {
-        return new Content(
-            view: 'emails.notificacion',
-        );
+        return $this->subject('🔔 Nuevo Documento - Casilla Electrónica GORE PASCO')
+                    ->view('emails.notificacion');
     }
 }

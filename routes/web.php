@@ -62,6 +62,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 
     // AUDITORÍA / LOGS (Bitácora)
     Route::get('/bitacora', [AdminBitacoraController::class, 'index'])->name('admin.bitacora');
+
+    Route::get('/cargo/{id}', [AdminNotificacionController::class, 'descargarCargo'])->name('admin.cargo');
 });
 
 // 6. DESCARGA SEGURA DE DOCUMENTOS (Ruta Privada)

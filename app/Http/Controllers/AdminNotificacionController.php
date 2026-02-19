@@ -12,7 +12,8 @@ use Illuminate\Support\Str;
 use App\Mail\NotificacionRecibida; // Asegúrate de tener este Mailable
 use TCPDF; 
 use App\Http\Controllers\Controller;
-
+use App\Models\Bitacora; // <--- AGREGAR ESTA (Soluciona "Undefined type Bitacora")
+use Illuminate\Support\Facades\Auth;
 class AdminNotificacionController extends Controller
 {
     /**
@@ -75,37 +76,57 @@ class AdminNotificacionController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validación de los datos del formulario "Redactar Notificación"
+        // 1. Validación
         $request->validate([
-            'user_id' => 'required|exists:users,id',      // El destinatario debe existir
+            'user_id' => 'required|exists:users,id',
             'asunto'  => 'required|string|max:255',
             'mensaje' => 'nullable|string',
-            'archivo' => 'required|file|mimes:pdf|max:20480', // Solo PDF, máx 20MB
+            'archivo' => 'required|file|mimes:pdf|max:20480', // Máx 20MB
         ]);
 
         try {
-            // 2. Subir el Archivo PDF de forma segura (carpeta 'local' para que no sea pública)
-            // Se guardará en storage/app/documentos
-            $rutaArchivo = $request->file('archivo')->store('documentos', 'local'); 
+            // 2. Subir Archivo
+            $rutaArchivo = $request->file('archivo')->store('documentos', 'local');
 
-            // 3. Guardar el registro en la tabla 'notificaciones'
-            Notificacion::create([
+            // 3. Crear Notificación en BD
+            $notificacion = Notificacion::create([
                 'user_id'          => $request->user_id,
                 'asunto'           => $request->asunto,
                 'mensaje'          => $request->mensaje,
                 'ruta_archivo_pdf' => $rutaArchivo,
-                'fecha_lectura'    => null, // Aún no lo lee
+                'fecha_lectura'    => null,
             ]);
 
-            // 4. (Opcional) Aquí podrías enviar un correo avisando al usuario
-            // $usuario = User::find($request->user_id);
-            // Mail::to($usuario->email)->send(new NotificacionRecibida(...));
+            // 4. Enviar Correo y Registrar en Bitácora
+            // Usamos un try-catch interno para que, si falla el correo, NO falle todo el proceso
+            try {
+                $usuario = User::find($request->user_id);
+                
+                // Enviar Correo
+                Mail::to($usuario->email)->send(new NotificacionRecibida($request->asunto, $usuario->name));
 
-            return redirect()->route('admin.crear')->with('success', '¡Documento enviado correctamente al ciudadano!');
+                // Registrar en Bitácora (Auditoría)
+                Bitacora::create([
+                    'user_id' => Auth::id(),
+                    'accion'  => 'ENVIO_NOTIFICACION',
+                    'detalle' => "Enviado a {$usuario->dni} ({$usuario->email}) | Asunto: {$request->asunto}",
+                    'ip'      => $request->ip()
+                ]);
+
+            } catch (\Exception $e) {
+                // Si falla el correo, avisamos con 'warning' pero el documento SÍ se guardó
+                return redirect()->route('admin.crear')
+                    ->with('warning', 'Documento guardado correctamente, pero no se pudo enviar el correo de aviso: ' . $e->getMessage());
+            }
+
+            // 5. Retorno Exitoso (Todo salió bien)
+            return redirect()->route('admin.crear')
+                ->with('success', '¡Documento enviado y ciudadano notificado por correo!');
 
         } catch (\Exception $e) {
-            // En caso de error, volvemos atrás con el mensaje
-            return back()->withInput()->with('error', 'Error al procesar el envío: ' . $e->getMessage());
+            // Error General (Falla al subir archivo o guardar en BD)
+            return back()->withInput()
+                ->with('error', 'Error crítico al procesar el envío: ' . $e->getMessage());
         }
     }
     
@@ -180,5 +201,28 @@ class AdminNotificacionController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Error al generar credenciales: ' . $e->getMessage());
         }
+    }
+    // app/Http/Controllers/AdminNotificacionController.php
+
+    /**
+     * Permite al administrador descargar la constancia de lectura (Cargo)
+     */
+    public function descargarCargo($id)
+    {
+        $notificacion = Notificacion::findOrFail($id);
+
+        if (!$notificacion->fecha_lectura) {
+            return back()->with('error', 'El ciudadano aún no ha leído este documento.');
+        }
+
+        // Reconstruimos el nombre del archivo tal como lo generamos en el paso anterior
+        $nombreArchivo = "cargo_recepcion_{$notificacion->id}_{$notificacion->user->dni}.pdf";
+        $path = "cargos/{$nombreArchivo}";
+
+        if (!Storage::exists($path)) {
+             return back()->with('error', 'El cargo no se encuentra físico (quizás fue leído antes de implementar el sistema de cargos).');
+        }
+
+        return Storage::download($path, $nombreArchivo);
     }
 }
