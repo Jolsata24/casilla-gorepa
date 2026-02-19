@@ -89,15 +89,22 @@
                                             <div class="text-xs text-gray-400">{{ $notificacion->created_at->format('h:i A') }}</div>
                                         </td>
 
-                                        {{-- DESTINATARIO --}}
+                                        {{-- DESTINATARIO (DINÁMICO DNI/RUC) --}}
                                         <td class="px-6 py-4 whitespace-nowrap">
+                                            @php
+                                                $esRUC = $notificacion->user->tipo_documento === 'RUC';
+                                                $nombreDestinatario = $esRUC ? $notificacion->user->razon_social : trim($notificacion->user->name . ' ' . $notificacion->user->apellido_paterno);
+                                                $tipoDoc = $esRUC ? 'RUC' : 'DNI';
+                                                $numDoc = $esRUC ? $notificacion->user->ruc : $notificacion->user->dni;
+                                                $inicial = substr($nombreDestinatario, 0, 1);
+                                            @endphp
                                             <div class="flex items-center">
-                                                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs mr-3">
-                                                    {{ substr($notificacion->user->name, 0, 1) }}{{ substr($notificacion->user->apellido_paterno, 0, 1) }}
+                                                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs mr-3 uppercase">
+                                                    {{ $inicial }}
                                                 </div>
                                                 <div>
-                                                    <div class="text-sm font-bold text-gray-900">{{ $notificacion->user->name }} {{ $notificacion->user->apellido_paterno }}</div>
-                                                    <div class="text-xs text-gray-500 font-mono">DNI: {{ $notificacion->user->dni }}</div>
+                                                    <div class="text-sm font-bold text-gray-900" title="{{ $nombreDestinatario }}">{{ Str::limit($nombreDestinatario, 30) }}</div>
+                                                    <div class="text-xs text-gray-500 font-mono">{{ $tipoDoc }}: {{ $numDoc }}</div>
                                                 </div>
                                             </div>
                                         </td>

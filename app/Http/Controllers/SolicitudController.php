@@ -18,48 +18,60 @@ class SolicitudController extends Controller
 
     public function store(Request $request)
     {   
-        
-        // 1. Validación (Aseguramos que celular sea obligatorio)
-        $validated = $request->validate([
-        'dni' => 'required|string|size:8|unique:users,dni',
-        'name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users,email',
-        'apellido_paterno' => 'required|string',
-        'apellido_materno' => 'required|string',
-        'celular' => 'required|string|max:15', // Asegúrate que este input exista en el formulario
-        
-        // CAMBIO IMPORTANTE: Ponlos como 'nullable' para evitar rebotes silenciosos
-        'departamento' => 'nullable|string',
-        'provincia' => 'nullable|string',
-        'distrito' => 'nullable|string',
-        'direccion' => 'nullable|string',
-    ]);
+        // 1. Validación Condicional (El corazón del cambio)
+        $request->validate([
+            'tipo_documento' => 'required|in:DNI,RUC',
+            
+            // Si es DNI, exigimos estos
+            'dni' => 'nullable|required_if:tipo_documento,DNI|string|size:8|unique:users,dni',
+            'apellido_paterno' => 'nullable|required_if:tipo_documento,DNI|string',
+            'apellido_materno' => 'nullable|required_if:tipo_documento,DNI|string',
+            
+            // Si es RUC, exigimos estos
+            'ruc' => 'nullable|required_if:tipo_documento,RUC|string|size:11|unique:users,ruc',
+            'razon_social' => 'nullable|required_if:tipo_documento,RUC|string|max:255',
 
-    try {
-        $user = User::create([
-            'dni' => $request->dni,
-            'name' => $request->name,
-            'apellido_paterno' => $request->apellido_paterno,
-            'apellido_materno' => $request->apellido_materno,
-            'email' => $request->email,
-            'celular' => $request->celular,
+            // Campos Generales obligatorios
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'celular' => 'required|string|max:15',
             
-            // Usamos el operador null coalescing (??) por seguridad
-            'departamento' => $request->departamento ?? 'No registrado',
-            'provincia' => $request->provincia ?? 'No registrado',
-            'distrito' => $request->distrito ?? 'No registrado',
-            'direccion' => $request->direccion ?? 'No registrado',
-            
-            'password' => Hash::make(Str::random(30)),
-            'status' => 0,
-            'is_admin' => 0,
+            // Ubicación opcional
+            'departamento' => 'nullable|string',
+            'provincia' => 'nullable|string',
+            'distrito' => 'nullable|string',
+            'direccion' => 'nullable|string',
         ]);
 
-        return redirect()->route('login')->with('status', '¡Solicitud enviada! Espere aprobación.');
+        try {
+            // 2. Creación del Usuario
+            $user = User::create([
+                'tipo_documento' => $request->tipo_documento,
+                'ruc' => $request->ruc,
+                'razon_social' => $request->razon_social,
+                'dni' => $request->dni,
+                'name' => $request->name,
+                'apellido_paterno' => $request->apellido_paterno,
+                'apellido_materno' => $request->apellido_materno,
+                'email' => $request->email,
+                'celular' => $request->celular,
+                
+                'departamento' => $request->departamento ?? 'No registrado',
+                'provincia' => $request->provincia ?? 'No registrado',
+                'distrito' => $request->distrito ?? 'No registrado',
+                'direccion' => $request->direccion ?? 'No registrado',
+                
+                // Contraseña temporal segura que el usuario no conoce
+                'password' => Hash::make(Str::random(30)),
+                'status' => 0, // Pendiente de aprobación
+                'is_admin' => 0,
+            ]);
 
-    } catch (\Exception $e) {
-        // Esto te mostrará el error real en pantalla si la BD falla
-        return back()->withInput()->with('error', 'Error BD: ' . $e->getMessage());
-    }
+            return redirect()->route('login')->with('status', '¡Solicitud enviada exitosamente! El administrador evaluará sus datos.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al registrar solicitud: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Error BD: No se pudo crear la solicitud.');
+        }
     }
 }

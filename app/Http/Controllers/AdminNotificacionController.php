@@ -145,6 +145,16 @@ class AdminNotificacionController extends Controller
                 'password' => Hash::make($passwordPlano)
             ]);
 
+            // Determinar si es Empresa o Ciudadano
+            $esRUC = $usuario->tipo_documento == 'RUC';
+            $identificador = $esRUC ? $usuario->ruc : $usuario->dni;
+            $tipoDocLabel = $esRUC ? 'RUC' : 'DNI';
+            
+            // Si es empresa, mostrar Razón Social, si no, Nombre Completo
+            $nombreDestinatario = $esRUC 
+                ? $usuario->razon_social 
+                : "{$usuario->name} {$usuario->apellido_paterno} {$usuario->apellido_materno}";
+
             // Generación del PDF
             $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
             $pdf->SetCreator('GORE PASCO');
@@ -168,8 +178,8 @@ class AdminNotificacionController extends Controller
             $html = "
             <p style='text-align:right'><strong>Fecha:</strong> $fecha</p>
             <br>
-            <p><strong>Estimado(a):</strong> {$usuario->name} {$usuario->apellido_paterno} {$usuario->apellido_materno}</p>
-            <p><strong>DNI:</strong> {$usuario->dni}</p>
+            <p><strong>Estimado(a):</strong> $nombreDestinatario</p>
+            <p><strong>$tipoDocLabel:</strong> $identificador</p>
             <br>
             <p>Su solicitud de acceso ha sido <strong>APROBADA</strong>.</p>
             <p>Credenciales de ingreso:</p>
@@ -180,23 +190,28 @@ class AdminNotificacionController extends Controller
                     <td>$linkLogin</td>
                 </tr>
                 <tr>
-                    <td bgcolor=\"#f0f0f0\"><strong>Usuario:</strong></td>
+                    <td bgcolor=\"#f0f0f0\"><strong>Usuario ($tipoDocLabel):</strong></td>
+                    <td><b>$identificador</b></td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#f0f0f0\"><strong>Correo Registrado:</strong></td>
                     <td>{$usuario->email}</td>
                 </tr>
                 <tr>
-                    <td bgcolor=\"#f0f0f0\"><strong>Contraseña:</strong></td>
-                    <td><b style=\"font-size:14pt\">$passwordPlano</b></td>
+                    <td bgcolor=\"#f0f0f0\"><strong>Contraseña Temporal:</strong></td>
+                    <td><b style=\"font-size:14pt; color:#1a56db;\">$passwordPlano</b></td>
                 </tr>
             </table>
             <br>
-            <p>Se recomienda cambiar su contraseña al primer ingreso.</p>
+            <p>Se recomienda ingresar y cambiar su contraseña inmediatamente por razones de seguridad.</p>
             <br>
             <p style='text-align:center'>______________________________________<br>Oficina de TI - GORE PASCO</p>
             ";
 
             $pdf->writeHTML($html, true, false, true, false, '');
 
-            return $pdf->Output('Credenciales_' . $usuario->dni . '.pdf', 'D');
+            // Descargar con el nombre correcto (DNI o RUC)
+            return $pdf->Output('Credenciales_' . $identificador . '.pdf', 'D');
 
         } catch (\Exception $e) {
             return back()->with('error', 'Error al generar credenciales: ' . $e->getMessage());

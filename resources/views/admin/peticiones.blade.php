@@ -13,7 +13,6 @@
     <div class="py-12 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
-            {{-- Mensaje de Éxito --}}
             @if(session('success'))
                 <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-xl shadow-sm flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -26,7 +25,7 @@
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-100">
                 <div class="p-8">
                     <div class="mb-6">
-                        <h3 class="text-lg font-bold text-gray-800">Solicitudes de Ciudadanos</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Solicitudes de Ciudadanos y Entidades</h3>
                         <p class="text-sm text-gray-500">Revise la información detallada antes de aprobar y generar credenciales.</p>
                     </div>
 
@@ -42,7 +41,7 @@
                                 <thead>
                                     <tr class="border-b border-gray-100">
                                         <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha</th>
-                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">DNI</th>
+                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Documento</th>
                                         <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitante</th>
                                         <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                                     </tr>
@@ -53,28 +52,37 @@
                                         <td class="p-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ $solicitud->created_at->format('d/m/Y') }}
                                         </td>
+                                        
+                                        {{-- MOSTRAR DNI O RUC DINÁMICAMENTE --}}
                                         <td class="p-4 whitespace-nowrap">
                                             <span class="bg-gray-100 text-gray-700 font-mono font-bold px-2 py-1 rounded text-sm">
-                                                {{ $solicitud->dni }}
+                                                {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->ruc : $solicitud->dni }}
                                             </span>
+                                            <span class="text-[10px] ml-1 text-gray-400 font-bold uppercase">{{ $solicitud->tipo_documento }}</span>
                                         </td>
+                                        
+                                        {{-- MOSTRAR RAZÓN SOCIAL O NOMBRES DINÁMICAMENTE --}}
                                         <td class="p-4">
                                             <div class="flex flex-col">
-                                                <span class="font-bold text-gray-800 capitalize">{{ $solicitud->name }} {{ $solicitud->apellido_paterno }}</span>
+                                                <span class="font-bold text-gray-800 uppercase text-sm">
+                                                    {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->razon_social : ($solicitud->name . ' ' . $solicitud->apellido_paterno) }}
+                                                </span>
                                                 <span class="text-xs text-blue-500">{{ $solicitud->email }}</span>
                                             </div>
                                         </td>
+                                        
                                         <td class="p-4 text-right flex justify-end gap-2">
-                                            
-                                            {{-- BOTÓN REVISAR: Carga los datos guardados en BD (Sin API) --}}
+                                            {{-- BOTÓN REVISAR CON NUEVOS DATA-ATTRIBUTES --}}
                                             <button onclick="verDetalles(this)" 
+                                                    data-tipo="{{ $solicitud->tipo_documento }}"
                                                     data-dni="{{ $solicitud->dni }}"
+                                                    data-ruc="{{ $solicitud->ruc }}"
+                                                    data-razon="{{ $solicitud->razon_social }}"
                                                     data-nombres="{{ $solicitud->name }}"
                                                     data-paterno="{{ $solicitud->apellido_paterno }}"
                                                     data-materno="{{ $solicitud->apellido_materno }}"
                                                     data-email="{{ $solicitud->email }}"
                                                     data-celular="{{ $solicitud->celular }}"
-                                                    {{-- Concatenamos la ubicación --}}
                                                     data-ubicacion="{{ $solicitud->departamento }} / {{ $solicitud->provincia }} / {{ $solicitud->distrito }}"
                                                     data-direccion="{{ $solicitud->direccion }}"
                                                     class="inline-flex items-center justify-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold uppercase rounded-lg transition-colors"
@@ -112,38 +120,42 @@
         </div>
     </div>
 
-    {{-- MODAL DETALLE (ÚNICO MODAL) --}}
+    {{-- MODAL DETALLE --}}
     <div id="modalDetalle" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
 
         <div class="flex min-h-full items-center justify-center p-4">
             <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-lg">
                 
-                {{-- Cabecera --}}
                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-gray-800">Detalle del Ciudadano</h3>
+                    <h3 class="text-lg font-bold text-gray-800">Detalle del Solicitante</h3>
                     <button type="button" onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
-                {{-- Cuerpo --}}
                 <div class="p-6 space-y-4">
-                    {{-- DNI Grande --}}
+                    {{-- DNI/RUC Grande --}}
                     <div class="flex items-center justify-center mb-4">
-                        <div class="bg-blue-100 text-blue-800 font-black text-2xl px-6 py-2 rounded-lg tracking-widest border border-blue-200" id="m_dni"></div>
+                        <div class="bg-blue-100 text-blue-800 font-black text-2xl px-6 py-2 rounded-lg tracking-widest border border-blue-200" id="m_dni_ruc"></div>
                     </div>
 
-                    {{-- Nombres --}}
+                    {{-- Nombres / Razón Social --}}
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="bg-gray-50 p-3 rounded-lg">
-                            <p class="text-xs text-gray-400 uppercase font-bold">Nombres</p>
-                            <p class="font-bold text-gray-800 mt-1" id="m_nombres"></p>
+                        <div class="bg-gray-50 p-3 rounded-lg" id="caja_nombres">
+                            <p class="text-xs text-gray-400 uppercase font-bold" id="lbl_nombres">Nombres</p>
+                            <p class="font-bold text-gray-800 mt-1 uppercase" id="m_nombres"></p>
                         </div>
-                        <div class="bg-gray-50 p-3 rounded-lg">
+                        <div class="bg-gray-50 p-3 rounded-lg" id="caja_apellidos">
                             <p class="text-xs text-gray-400 uppercase font-bold">Apellidos</p>
-                            <p class="font-bold text-gray-800 mt-1" id="m_apellidos"></p>
+                            <p class="font-bold text-gray-800 mt-1 uppercase" id="m_apellidos"></p>
                         </div>
+                    </div>
+
+                    {{-- Representante (Solo para RUC) --}}
+                    <div class="bg-gray-50 p-3 rounded-lg hidden" id="caja_representante">
+                        <p class="text-xs text-gray-400 uppercase font-bold">Representante Legal / Contacto</p>
+                        <p class="font-bold text-gray-800 mt-1 uppercase" id="m_representante"></p>
                     </div>
 
                     {{-- Contacto --}}
@@ -169,14 +181,13 @@
                     <div class="border-t border-gray-100 pt-3 bg-blue-50 -mx-6 px-6 pb-4 mt-2">
                         <p class="text-xs text-blue-400 uppercase font-bold mt-3">Ubicación Registrada</p>
                         <p class="text-sm font-bold text-gray-800 mt-1 flex items-start gap-2">
-                            <svg class="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <svg class="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
                             <span id="m_ubicacion"></span>
                         </p>
                         <p class="text-xs text-gray-500 italic mt-1 pl-6" id="m_direccion"></p>
                     </div>
                 </div>
 
-                {{-- Footer --}}
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse border-t border-gray-100">
                     <button type="button" onclick="cerrarModal()" class="w-full inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto transition-colors">
                         Cerrar
@@ -186,22 +197,42 @@
         </div>
     </div>
 
-    {{-- SCRIPT ÚNICO Y LIMPIO --}}
     <script>
         function verDetalles(btn) {
-            // 1. Extraer todos los datos del dataset del botón
             const d = btn.dataset;
+            const esRUC = d.tipo === 'RUC';
 
-            // 2. Llenar los campos del Modal
-            document.getElementById('m_dni').innerText = d.dni;
-            document.getElementById('m_nombres').innerText = d.nombres;
-            document.getElementById('m_apellidos').innerText = `${d.paterno} ${d.materno}`;
+            // Documento Principal
+            document.getElementById('m_dni_ruc').innerText = esRUC ? `RUC: ${d.ruc}` : `DNI: ${d.dni}`;
+
+            // Control de Nombres y Apellidos
+            if(esRUC) {
+                document.getElementById('lbl_nombres').innerText = 'Razón Social';
+                document.getElementById('m_nombres').innerText = d.razon;
+                
+                // Ocultar apellidos y hacer que Razón Social ocupe el ancho completo
+                document.getElementById('caja_apellidos').classList.add('hidden');
+                document.getElementById('caja_nombres').classList.add('col-span-2');
+                
+                // Mostrar quién es el representante
+                document.getElementById('caja_representante').classList.remove('hidden');
+                document.getElementById('m_representante').innerText = d.nombres;
+            } else {
+                document.getElementById('lbl_nombres').innerText = 'Nombres';
+                document.getElementById('m_nombres').innerText = d.nombres;
+                document.getElementById('m_apellidos').innerText = `${d.paterno} ${d.materno}`;
+                
+                // Restaurar vista de 2 columnas
+                document.getElementById('caja_apellidos').classList.remove('hidden');
+                document.getElementById('caja_nombres').classList.remove('col-span-2');
+                document.getElementById('caja_representante').classList.add('hidden');
+            }
+
+            // Datos comunes
             document.getElementById('m_email').innerText = d.email;
             document.getElementById('m_celular').innerText = d.celular || 'No registrado';
             
-            // 3. Lógica para Ubicación (Si vienen vacíos los campos)
             let ubicacion = d.ubicacion;
-            // Si la cadena es solo " / / " significa que no hay datos
             if(!ubicacion || ubicacion.trim() === '/  /') {
                 ubicacion = 'Sin información de ubicación';
                 document.getElementById('m_direccion').innerText = '';
@@ -210,7 +241,6 @@
             }
             document.getElementById('m_ubicacion').innerText = ubicacion;
 
-            // 4. Mostrar el Modal
             document.getElementById('modalDetalle').classList.remove('hidden');
         }
 

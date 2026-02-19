@@ -5,7 +5,7 @@
             {{-- ENCABEZADO --}}
             <div class="mb-8 text-center">
                 <h2 class="text-3xl font-black text-gray-800 tracking-tight">Redactar Notificación</h2>
-                <p class="text-gray-500 font-medium">Seleccione al ciudadano y adjunte el documento oficial.</p>
+                <p class="text-gray-500 font-medium">Seleccione al destinatario y adjunte el documento oficial.</p>
             </div>
 
             {{-- MENSAJES DE ÉXITO --}}
@@ -23,7 +23,7 @@
                     <form method="GET" action="{{ route('admin.crear') }}">
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">1. Buscar Destinatario</label>
                         <div class="flex gap-2">
-                            <input type="text" name="search" value="{{ request('search') }}" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Buscar por DNI, Nombre o Email...">
+                            <input type="text" name="search" value="{{ request('search') }}" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Buscar por DNI, RUC, Razón Social o Email...">
                             <button type="submit" class="px-6 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-black transition-colors">BUSCAR</button>
                         </div>
                     </form>
@@ -33,18 +33,26 @@
                         <div class="mt-4 grid gap-2">
                             <p class="text-xs text-gray-500 font-bold uppercase">Resultados encontrados:</p>
                             @foreach($usuarios as $u)
-                                <div onclick="seleccionarUsuario('{{ $u->id }}', '{{ $u->name }} {{ $u->apellido_paterno }}', '{{ $u->dni }}')" 
+                                @php
+                                    // Lógica para diferenciar Persona Natural de Jurídica
+                                    $esRUC = $u->tipo_documento === 'RUC';
+                                    $nombreMostrar = $esRUC ? $u->razon_social : trim($u->name . ' ' . $u->apellido_paterno);
+                                    $docMostrar = $esRUC ? $u->ruc : $u->dni;
+                                    $tipoDoc = $esRUC ? 'RUC' : 'DNI';
+                                @endphp
+
+                                <div onclick="seleccionarUsuario('{{ $u->id }}', '{{ addslashes($nombreMostrar) }}', '{{ $docMostrar }}', '{{ $tipoDoc }}')" 
                                      class="cursor-pointer p-3 border rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-colors flex justify-between items-center group">
                                     <div>
-                                        <p class="font-bold text-gray-800">{{ $u->name }} {{ $u->apellido_paterno }}</p>
-                                        <p class="text-xs text-gray-500">{{ $u->dni }} &bull; {{ $u->email }}</p>
+                                        <p class="font-bold text-gray-800 uppercase">{{ $nombreMostrar }}</p>
+                                        <p class="text-xs text-gray-500 font-mono">{{ $tipoDoc }}: {{ $docMostrar }} &bull; {{ $u->email }}</p>
                                     </div>
                                     <span class="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full group-hover:bg-blue-600 group-hover:text-white">Seleccionar</span>
                                 </div>
                             @endforeach
                         </div>
                     @elseif(request('search'))
-                        <p class="mt-4 text-sm text-red-500 text-center">No se encontraron ciudadanos.</p>
+                        <p class="mt-4 text-sm text-red-500 text-center">No se encontraron resultados.</p>
                     @endif
                 </div>
 
@@ -52,36 +60,31 @@
                 <form action="{{ route('admin.store') }}" method="POST" enctype="multipart/form-data" class="p-8">
                     @csrf
                     
-                    {{-- Input Oculto para el ID del Usuario --}}
                     <input type="hidden" name="user_id" id="user_id_input" required>
 
-                    {{-- Panel de Usuario Seleccionado (Visible solo cuando se selecciona) --}}
+                    {{-- Panel de Usuario Seleccionado --}}
                     <div id="panel_seleccionado" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center justify-between">
                         <div>
                             <p class="text-xs font-bold text-green-600 uppercase">Destinatario Confirmado</p>
-                            <p class="text-lg font-black text-green-900" id="nombre_seleccionado">--</p>
-                            <p class="text-sm text-green-700" id="dni_seleccionado">--</p>
+                            <p class="text-lg font-black text-green-900 uppercase" id="nombre_seleccionado">--</p>
+                            <p class="text-sm text-green-700 font-mono font-bold" id="dni_seleccionado">--</p>
                         </div>
                         <button type="button" onclick="resetearSeleccion()" class="text-red-500 text-xs font-bold underline hover:text-red-700">Cambiar</button>
                     </div>
 
                     <div class="space-y-6">
-                        {{-- Asunto --}}
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">2. Asunto</label>
-                            <input type="text" name="asunto" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="Ej: Resolución Ejecutiva N° 123-2024">
+                            <input type="text" name="asunto" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="Ej: Resolución Ejecutiva N° 123-2026">
                         </div>
 
-                        {{-- Mensaje --}}
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">3. Mensaje</label>
                             <textarea name="mensaje" rows="4" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="Escriba aquí el detalle..."></textarea>
                         </div>
 
-                        {{-- ARCHIVO PDF (AQUÍ ESTÁ LA MEJORA VISUAL) --}}
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">4. Adjuntar Archivo (PDF)</label>
-                            
                             <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors" id="dropzone">
                                 <input type="file" name="archivo" id="archivo_input" accept="application/pdf" required 
                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -117,18 +120,16 @@
         </div>
     </div>
 
-    {{-- SCRIPTS PARA LA INTERACTIVIDAD --}}
+    {{-- SCRIPTS ACTUALIZADOS --}}
     <script>
-        // Función para seleccionar usuario del buscador
-        function seleccionarUsuario(id, nombre, dni) {
+        // La función ahora recibe 4 parámetros para saber si es DNI o RUC
+        function seleccionarUsuario(id, nombre, documento, tipoDoc) {
             document.getElementById('user_id_input').value = id;
             document.getElementById('nombre_seleccionado').innerText = nombre;
-            document.getElementById('dni_seleccionado').innerText = 'DNI: ' + dni;
+            // Aquí muestra dinámicamente "DNI: 123" o "RUC: 123"
+            document.getElementById('dni_seleccionado').innerText = tipoDoc + ': ' + documento;
             
-            // Mostrar panel y ocultar buscador (opcional, aquí solo mostramos el panel)
             document.getElementById('panel_seleccionado').classList.remove('hidden');
-            
-            // Efecto visual de scroll suave hacia el formulario
             document.getElementById('panel_seleccionado').scrollIntoView({behavior: 'smooth'});
         }
 
@@ -137,34 +138,26 @@
             document.getElementById('panel_seleccionado').classList.add('hidden');
         }
 
-        // Función para mostrar el nombre del archivo seleccionado
         function mostrarArchivo(input) {
             const archivo = input.files[0];
             if (archivo) {
-                // Ocultar mensaje inicial
                 document.getElementById('contenido_inicial').classList.add('hidden');
-                // Mostrar info del archivo
                 document.getElementById('contenido_archivo').classList.remove('hidden');
                 document.getElementById('nombre_archivo').innerText = archivo.name;
                 
-                // Cambiar borde a verde/azul para indicar éxito
                 document.getElementById('dropzone').classList.add('bg-blue-50', 'border-blue-300');
                 document.getElementById('dropzone').classList.remove('border-gray-300');
             }
         }
 
-        // Función para quitar el archivo
         function quitarArchivo(event) {
-            event.preventDefault(); // Evitar que abra el selector de archivos de nuevo
-            
+            event.preventDefault();
             const input = document.getElementById('archivo_input');
-            input.value = ''; // Limpiar el input file
+            input.value = '';
 
-            // Volver al estado inicial
             document.getElementById('contenido_inicial').classList.remove('hidden');
             document.getElementById('contenido_archivo').classList.add('hidden');
             
-            // Restaurar estilos
             document.getElementById('dropzone').classList.remove('bg-blue-50', 'border-blue-300');
             document.getElementById('dropzone').classList.add('border-gray-300');
         }

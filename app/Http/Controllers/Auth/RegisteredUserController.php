@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-
+use Illuminate\Support\Str; // <--- AGREGA ESTO ARRIBA
 class RegisteredUserController extends Controller
 {
     /**
@@ -30,41 +30,51 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
 {
     $request->validate([
-        'dni' => ['required', 'string', 'size:8', 'unique:users'],
-        'name' => ['required', 'string', 'max:255'],
-        'apellido_paterno' => ['required', 'string', 'max:255'],
-        'apellido_materno' => ['required', 'string', 'max:255'],
-        // AGREGAR VALIDACIÓN DE CELULAR
+        'tipo_documento' => ['required', 'in:DNI,RUC'],
+        
+        'dni' => ['nullable', 'required_if:tipo_documento,DNI', 'string', 'size:8', 'unique:users,dni'],
+        'apellido_paterno' => ['nullable', 'required_if:tipo_documento,DNI', 'string', 'max:255'],
+        'apellido_materno' => ['nullable', 'required_if:tipo_documento,DNI', 'string', 'max:255'],
+        
+        'ruc' => ['nullable', 'required_if:tipo_documento,RUC', 'string', 'size:11', 'unique:users,ruc'],
+        'razon_social' => ['nullable', 'required_if:tipo_documento,RUC', 'string', 'max:255'],
+
+        'name' => ['required', 'string', 'max:255'], 
         'celular' => ['required', 'string', 'max:15'], 
         'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-        'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        // AGREGAR VALIDACIÓN DE DIRECCIÓN PARA EVITAR DATOS VACÍOS
+        
+        // ¡Se eliminó la validación de password y password_confirmation!
+        
         'departamento' => ['nullable', 'string'],
         'provincia' => ['nullable', 'string'],
         'distrito' => ['nullable', 'string'],
         'direccion' => ['nullable', 'string'],
     ]);
 
+    // Generamos una contraseña aleatoria de 16 caracteres segura por defecto
+    $passwordTemporal = Str::random(16);
+
     $user = User::create([
+        'tipo_documento' => $request->tipo_documento,
+        'ruc' => $request->ruc,
+        'razon_social' => $request->razon_social,
         'dni' => $request->dni,
         'name' => $request->name,
         'apellido_paterno' => $request->apellido_paterno,
         'apellido_materno' => $request->apellido_materno,
-        // AGREGAR EL CELULAR AQUÍ
         'celular' => $request->celular, 
         'departamento' => $request->departamento,
         'provincia' => $request->provincia,
         'distrito' => $request->distrito,
         'direccion' => $request->direccion,
         'email' => $request->email,
-        'password' => Hash::make($request->password),
-        'status' => 0,
-        // IMPORTANTE: Definir is_admin explícitamente para evitar error si no tiene default en DB
+        'password' => Hash::make($passwordTemporal), // <--- SE GUARDA LA TEMPORAL
+        'status' => 0, // <--- Nace inactivo, esperando al admin
         'is_admin' => 0, 
     ]);
 
     event(new Registered($user));
 
-    return redirect()->route('login')->with('status', 'Su solicitud ha sido enviada. Espere aprobación.');
+    return redirect()->route('login')->with('status', 'Su solicitud ha sido enviada. El administrador evaluará sus datos y le enviará sus credenciales al correo ingresado.');
 }
 }

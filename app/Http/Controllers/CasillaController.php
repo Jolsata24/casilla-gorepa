@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Notificacion;
 use App\Models\Etiqueta;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class CasillaController extends Controller
 {
@@ -80,4 +82,29 @@ class CasillaController extends Controller
         
         return back();
     }
+
+    public function descargarCargo($id)
+{
+    $notificacion = Notificacion::findOrFail($id);
+
+    // Solo el dueño puede descargar su cargo
+    if (auth()->id() !== $notificacion->user_id) {
+        abort(403);
+    }
+
+    // Si no lo ha leído aún, no hay cargo
+    if (!$notificacion->fecha_lectura) {
+        abort(404, 'Debe leer el documento primero para generar el cargo.');
+    }
+
+    $usuario = auth()->user();
+
+    // Generar la vista en PDF
+    $pdf = Pdf::loadView('pdf.cargo-lectura', [
+        'notificacion' => $notificacion,
+        'usuario' => $usuario
+    ]);
+
+    return $pdf->download("Cargo_Notificacion_".$notificacion->id.".pdf");
+}
 }

@@ -64,6 +64,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/bitacora', [AdminBitacoraController::class, 'index'])->name('admin.bitacora');
 
     Route::get('/cargo/{id}', [AdminNotificacionController::class, 'descargarCargo'])->name('admin.cargo');
+
+    Route::get('/casilla/cargo/{id}', [CasillaController::class, 'descargarCargo'])->name('casilla.cargo');
 });
 
 // 6. DESCARGA SEGURA DE DOCUMENTOS (Ruta Privada)
@@ -107,6 +109,31 @@ Route::get('/dni/info/{dni}', function ($dni) {
 
     if ($response->successful()) {
         $result = $response->json();
+        if (isset($result['data'])) {
+            return response()->json([
+                'success' => true,
+                'data' => $result['data']
+            ]);
+        }
+    }
+    return response()->json(['success' => false], 404);
+});
+
+// CONSULTA RUC (PÚBLICA PARA VALIDACIÓN)
+Route::get('/ruc/info/{ruc}', function ($ruc) {
+    
+    $token = env('FACTILIZA_TOKEN'); 
+
+    if (!$token) {
+        return response()->json(['success' => false, 'message' => 'Falta configurar el Token'], 500);
+    }
+
+    $response = Http::withToken($token)
+                    ->get("https://api.factiliza.com/v1/ruc/info/{$ruc}");
+
+    if ($response->successful()) {
+        $result = $response->json();
+        // Verificamos si la respuesta trae 'data'
         if (isset($result['data'])) {
             return response()->json([
                 'success' => true,
