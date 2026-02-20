@@ -222,27 +222,124 @@ class AdminNotificacionController extends Controller
     /**
      * Permite al administrador descargar la constancia de lectura (Cargo)
      */
+    /**
+     * Permite al administrador descargar la constancia de lectura (Cargo)
+     */
+    /**
+     * Permite al administrador descargar la constancia de lectura (Cargo)
+     */
     public function descargarCargo($id)
-{
-    $notificacion = Notificacion::findOrFail($id);
+    {
+        $notificacion = \App\Models\Notificacion::findOrFail($id);
 
-    if (!$notificacion->fecha_lectura) {
-        return back()->with('error', 'El ciudadano aún no ha leído este documento.');
+        // 1. Validar que el documento realmente haya sido leído
+        if (!$notificacion->fecha_lectura) {
+            return back()->with('error', 'El destinatario aún no ha leído este documento.');
+        }
+
+        // 2. Identificar si es ciudadano (DNI) o empresa (RUC) para el nombre del archivo
+        $user = $notificacion->user;
+        $esRUC = $user->tipo_documento === 'RUC';
+        $numDoc = $esRUC ? $user->ruc : $user->dni;
+
+        $nombreArchivo = "cargo_recepcion_{$notificacion->id}_{$numDoc}.pdf";
+        $path = "cargos/{$nombreArchivo}";
+
+        // 3. CASO A: El archivo YA EXISTE FÍSICAMENTE (Flujo normal)
+        if (\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
+            return \Illuminate\Support\Facades\Storage::disk('local')->download($path, $nombreArchivo);
+        }
+
+        // 4. CASO B: EL ARCHIVO NO EXISTE (Lo generamos al vuelo)
+        try {
+            $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            
+            $pdf->SetCreator('GORE PASCO - Casilla Electrónica');
+            $pdf->SetAuthor('Sistema de Notificaciones');
+            $pdf->SetTitle('Cargo de Recepción - Notificación #' . $notificacion->id);
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            $pdf->SetMargins(25, 25, 25);
+            $pdf->AddPage();
+
+            $nombreCompleto = mb_strtoupper($esRUC ? $user->razon_social : "{$user->name} {$user->apellido_paterno} {$user->apellido_materno}");
+            $tipoDocLabel = $esRUC ? 'RUC' : 'DNI';
+            
+            $pdf->SetFont('helvetica', 'B', 16);
+            $pdf->Cell(0, 10, 'GOBIERNO REGIONAL DE PASCO', 0, 1, 'C');
+            $pdf->SetFont('helvetica', 'B', 12);
+            $pdf->Cell(0, 10, 'CONSTANCIA DE NOTIFICACIÓN ELECTRÓNICA', 0, 1, 'C');
+            $pdf->Ln(10);
+
+            $pdf->SetFont('helvetica', '', 11);
+            $fechaLectura = \Carbon\Carbon::parse($notificacion->fecha_lectura)->format('d/m/Y H:i:s');
+
+            $html = "
+            <p style=\"text-align: justify;\">
+                Por medio del presente documento, el <strong>GOBIERNO REGIONAL DE PASCO</strong> deja constancia que el destinatario:
+            </p>
+            <br>
+            <table border=\"1\" cellpadding=\"8\">
+                <tr>
+                    <td width=\"150\" bgcolor=\"#f0f0f0\"><strong>Destinatario:</strong></td>
+                    <td>$nombreCompleto</td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#f0f0f0\"><strong>$tipoDocLabel:</strong></td>
+                    <td>$numDoc</td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#f0f0f0\"><strong>Domicilio:</strong></td>
+                    <td>{$user->direccion} - {$user->distrito}</td>
+                </tr>
+            </table>
+            <br>
+            <p style=\"text-align: justify;\">
+                Ha accedido conforme a ley a su <strong>CASILLA ELECTRÓNICA</strong>, dándose por <strong>NOTIFICADO VÁLIDAMENTE</strong> del siguiente acto administrativo:
+            </p>
+            <br>
+            <table border=\"1\" cellpadding=\"8\">
+                <tr>
+                    <td width=\"150\" bgcolor=\"#e6f7ff\"><strong>Asunto:</strong></td>
+                    <td>{$notificacion->asunto}</td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#e6f7ff\"><strong>Documento ID:</strong></td>
+                    <td>{$notificacion->id}</td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#e6f7ff\"><strong>Fecha de Lectura:</strong></td>
+                    <td>$fechaLectura</td>
+                </tr>
+                <tr>
+                    <td bgcolor=\"#e6f7ff\"><strong>IP de Acceso:</strong></td>
+                    <td>{$notificacion->ip_lectura}</td>
+                </tr>
+            </table>
+            <br>
+            <p style=\"font-size: 9pt; color: #555;\">
+                <i>Base Legal: TUO de la Ley N° 27444, Ley de Procedimiento Administrativo General. La notificación electrónica surte efectos legales desde el momento en que el ciudadano/entidad accede al documento en su casilla.</i>
+            </p>
+            <br><br><br>
+            <p style=\"text-align:center\">______________________________________<br>SISTEMA DE GESTIÓN DOCUMENTAL<br>GORE PASCO</p>
+            <p style=\"text-align:center; font-size: 8pt;\">Generado automáticamente (Registro en base de datos: $fechaLectura)</p>
+            ";
+
+            $pdf->writeHTML($html, true, false, true, false, '');
+
+            // ¡EL CAMBIO CRÍTICO ESTÁ AQUÍ!
+            // 1. Obtenemos el PDF como una cadena de texto cruda ('S' = String)
+            $pdfContent = $pdf->Output($nombreArchivo, 'S');
+
+            // 2. Guardamos usando el disco 'local' de Laravel. Esto crea las carpetas automáticamente sin dar error de permisos.
+            \Illuminate\Support\Facades\Storage::disk('local')->put($path, $pdfContent);
+
+            // 3. Forzamos la descarga del archivo que acabamos de crear
+            return \Illuminate\Support\Facades\Storage::disk('local')->download($path, $nombreArchivo);
+
+        } catch (\Exception $e) {
+            // En lugar de refrescar silenciosamente, detendrá la pantalla y te mostrará el error exacto
+            dd("Error crítico al generar el PDF: " . $e->getMessage() . " en la línea " . $e->getLine());
+        }
     }
-
-    // 1. Determinar el número de documento correcto (RUC o DNI)
-    $esRUC = $notificacion->user->tipo_documento === 'RUC';
-    $numDoc = $esRUC ? $notificacion->user->ruc : $notificacion->user->dni;
-
-    // 2. Reconstruir el nombre del archivo
-    $nombreArchivo = "cargo_recepcion_{$notificacion->id}_{$numDoc}.pdf";
-    $path = "cargos/{$nombreArchivo}";
-
-    // 3. Verificar en el disco 'local' explícitamente
-    if (!Storage::disk('local')->exists($path)) {
-            return back()->with('error', 'El cargo no se encuentra físico. Nombre buscado: ' . $nombreArchivo);
-    }
-
-    return Storage::disk('local')->download($path, $nombreArchivo);
-}
 }
