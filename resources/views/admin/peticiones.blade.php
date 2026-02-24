@@ -12,14 +12,16 @@
 
     <div class="py-12 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
+
             @if(session('success'))
-                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-xl shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        <p class="font-medium">{{ session('success') }}</p>
-                    </div>
+            <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-xl shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <p class="font-medium">{{ session('success') }}</p>
                 </div>
+            </div>
             @endif
 
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-100">
@@ -30,90 +32,100 @@
                     </div>
 
                     @if($solicitudes->isEmpty())
-                        <div class="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <h3 class="text-lg font-bold text-gray-600">Todo al día</h3>
-                            <p class="text-gray-400">No hay solicitudes pendientes.</p>
-                        </div>
+                    <div class="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-bold text-gray-600">Todo al día</h3>
+                        <p class="text-gray-400">No hay solicitudes pendientes.</p>
+                    </div>
                     @else
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-gray-100">
-                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha</th>
-                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Documento</th>
-                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitante</th>
-                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-50">
-                                    @foreach($solicitudes as $solicitud)
-                                    <tr class="hover:bg-gray-50 transition-colors group">
-                                        <td class="p-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $solicitud->created_at->format('d/m/Y') }}
-                                        </td>
-                                        
-                                        {{-- MOSTRAR DNI O RUC DINÁMICAMENTE --}}
-                                        <td class="p-4 whitespace-nowrap">
-                                            <span class="bg-gray-100 text-gray-700 font-mono font-bold px-2 py-1 rounded text-sm">
-                                                {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->ruc : $solicitud->dni }}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100">
+                                    <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha</th>
+                                    <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Documento</th>
+                                    <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitante</th>
+                                    <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @foreach($solicitudes as $solicitud)
+                                <tr class="hover:bg-gray-50 transition-colors group">
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ $solicitud->created_at->format('d/m/Y') }}
+                                    </td>
+
+                                    {{-- MOSTRAR DNI O RUC DINÁMICAMENTE --}}
+                                    <td class="p-4 whitespace-nowrap">
+                                        <span class="bg-gray-100 text-gray-700 font-mono font-bold px-2 py-1 rounded text-sm">
+                                            {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->ruc : $solicitud->dni }}
+                                        </span>
+                                        <span class="text-[10px] ml-1 text-gray-400 font-bold uppercase">{{ $solicitud->tipo_documento }}</span>
+                                    </td>
+
+                                    {{-- MOSTRAR RAZÓN SOCIAL O NOMBRES DINÁMICAMENTE --}}
+                                    <td class="p-4">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-gray-800 uppercase text-sm">
+                                                {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->razon_social : ($solicitud->name . ' ' . $solicitud->apellido_paterno) }}
                                             </span>
-                                            <span class="text-[10px] ml-1 text-gray-400 font-bold uppercase">{{ $solicitud->tipo_documento }}</span>
-                                        </td>
-                                        
-                                        {{-- MOSTRAR RAZÓN SOCIAL O NOMBRES DINÁMICAMENTE --}}
-                                        <td class="p-4">
-                                            <div class="flex flex-col">
-                                                <span class="font-bold text-gray-800 uppercase text-sm">
-                                                    {{ $solicitud->tipo_documento == 'RUC' ? $solicitud->razon_social : ($solicitud->name . ' ' . $solicitud->apellido_paterno) }}
-                                                </span>
-                                                <span class="text-xs text-blue-500">{{ $solicitud->email }}</span>
-                                            </div>
-                                        </td>
-                                        
-                                        <td class="p-4 text-right flex justify-end gap-2">
-                                            {{-- BOTÓN REVISAR CON NUEVOS DATA-ATTRIBUTES --}}
-                                            <button onclick="verDetalles(this)" 
-                                                    data-tipo="{{ $solicitud->tipo_documento }}"
-                                                    data-dni="{{ $solicitud->dni }}"
-                                                    data-ruc="{{ $solicitud->ruc }}"
-                                                    data-razon="{{ $solicitud->razon_social }}"
-                                                    data-nombres="{{ $solicitud->name }}"
-                                                    data-paterno="{{ $solicitud->apellido_paterno }}"
-                                                    data-materno="{{ $solicitud->apellido_materno }}"
-                                                    data-email="{{ $solicitud->email }}"
-                                                    data-celular="{{ $solicitud->celular }}"
-                                                    data-ubicacion="{{ $solicitud->departamento }} / {{ $solicitud->provincia }} / {{ $solicitud->distrito }}"
-                                                    data-direccion="{{ $solicitud->direccion }}"
-                                                    class="inline-flex items-center justify-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold uppercase rounded-lg transition-colors"
-                                                    title="Ver detalles completos">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                                Revisar
+                                            <span class="text-xs text-blue-500">{{ $solicitud->email }}</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="p-4 text-right flex justify-end gap-2">
+                                        {{-- BOTÓN REVISAR CON NUEVOS DATA-ATTRIBUTES --}}
+                                        <button onclick="verDetalles(this)"
+                                            data-tipo="{{ $solicitud->tipo_documento }}"
+                                            data-dni="{{ $solicitud->dni }}"
+                                            data-ruc="{{ $solicitud->ruc }}"
+                                            data-razon="{{ $solicitud->razon_social }}"
+                                            data-nombres="{{ $solicitud->name }}"
+                                            data-paterno="{{ $solicitud->apellido_paterno }}"
+                                            data-materno="{{ $solicitud->apellido_materno }}"
+                                            data-email="{{ $solicitud->email }}"
+                                            data-celular="{{ $solicitud->celular }}"
+                                            data-ubicacion="{{ $solicitud->departamento }} / {{ $solicitud->provincia }} / {{ $solicitud->distrito }}"
+                                            data-direccion="{{ $solicitud->direccion }}"
+                                            data-documento="{{ $solicitud->documento_confianza ? asset('storage/' . $solicitud->documento_confianza) : '' }}"
+                                            class="inline-flex items-center justify-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold uppercase rounded-lg transition-colors"
+                                            title="Ver detalles completos">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            Revisar
+                                        </button>
+
+                                        {{-- APROBAR --}}
+                                        <form action="{{ route('admin.aprobar.pdf', $solicitud->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase rounded-lg shadow transition-transform active:scale-95" title="Aprobar y Generar Credenciales">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg>
                                             </button>
+                                        </form>
 
-                                            {{-- APROBAR --}}
-                                            <form action="{{ route('admin.aprobar.pdf', $solicitud->id) }}" method="POST">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase rounded-lg shadow transition-transform active:scale-95" title="Aprobar y Generar Credenciales">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                </button>
-                                            </form>
-
-                                            {{-- DENEGAR --}}
-                                            @if(Route::has('admin.denegar'))
-                                            <form action="{{ route('admin.denegar', $solicitud->id) }}" method="POST" onsubmit="return confirm('¿Está seguro de rechazar esta solicitud? Se eliminará el registro.');">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center justify-center px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold uppercase rounded-lg transition-colors" title="Denegar solicitud">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                </button>
-                                            </form>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                        {{-- DENEGAR --}}
+                                        @if(Route::has('admin.denegar'))
+                                        <form action="{{ route('admin.denegar', $solicitud->id) }}" method="POST" onsubmit="return confirm('¿Está seguro de rechazar esta solicitud? Se eliminará el registro.');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center justify-center px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold uppercase rounded-lg transition-colors" title="Denegar solicitud">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                     @endif
                 </div>
             </div>
@@ -126,11 +138,13 @@
 
         <div class="flex min-h-full items-center justify-center p-4">
             <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-lg">
-                
+
                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-gray-800">Detalle del Solicitante</h3>
                     <button type="button" onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </button>
                 </div>
 
@@ -164,13 +178,17 @@
                         <div class="flex flex-col gap-2">
                             <p class="text-sm text-gray-700 flex items-center gap-2">
                                 <span class="bg-blue-50 p-1 rounded text-blue-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
                                 </span>
                                 <span id="m_email" class="font-medium"></span>
                             </p>
                             <p class="text-sm text-gray-700 flex items-center gap-2">
                                 <span class="bg-green-50 p-1 rounded text-green-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                    </svg>
                                 </span>
                                 <span id="m_celular" class="font-medium"></span>
                             </p>
@@ -181,10 +199,25 @@
                     <div class="border-t border-gray-100 pt-3 bg-blue-50 -mx-6 px-6 pb-4 mt-2">
                         <p class="text-xs text-blue-400 uppercase font-bold mt-3">Ubicación Registrada</p>
                         <p class="text-sm font-bold text-gray-800 mt-1 flex items-start gap-2">
-                            <svg class="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                            <svg class="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            </svg>
                             <span id="m_ubicacion"></span>
                         </p>
                         <p class="text-xs text-gray-500 italic mt-1 pl-6" id="m_direccion"></p>
+                    </div>
+
+                    {{-- Documento Adjunto --}}
+                    <div class="border-t border-gray-100 pt-3 mt-4" id="caja_documento">
+                        <p class="text-xs text-gray-400 uppercase font-bold mb-2">Documento de Acreditación</p>
+                        <a id="btn_ver_documento" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-lg transition-colors border border-indigo-200 w-full justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path>
+                            </svg>
+                            Ver / Descargar Documento
+                        </a>
+                        <p id="txt_sin_documento" class="text-sm text-gray-500 italic hidden text-center py-2 bg-gray-50 rounded-lg">No se adjuntó documento de confianza.</p>
                     </div>
                 </div>
 
@@ -206,14 +239,14 @@
             document.getElementById('m_dni_ruc').innerText = esRUC ? `RUC: ${d.ruc}` : `DNI: ${d.dni}`;
 
             // Control de Nombres y Apellidos
-            if(esRUC) {
+            if (esRUC) {
                 document.getElementById('lbl_nombres').innerText = 'Razón Social';
                 document.getElementById('m_nombres').innerText = d.razon;
-                
+
                 // Ocultar apellidos y hacer que Razón Social ocupe el ancho completo
                 document.getElementById('caja_apellidos').classList.add('hidden');
                 document.getElementById('caja_nombres').classList.add('col-span-2');
-                
+
                 // Mostrar quién es el representante
                 document.getElementById('caja_representante').classList.remove('hidden');
                 document.getElementById('m_representante').innerText = d.nombres;
@@ -221,7 +254,7 @@
                 document.getElementById('lbl_nombres').innerText = 'Nombres';
                 document.getElementById('m_nombres').innerText = d.nombres;
                 document.getElementById('m_apellidos').innerText = `${d.paterno} ${d.materno}`;
-                
+
                 // Restaurar vista de 2 columnas
                 document.getElementById('caja_apellidos').classList.remove('hidden');
                 document.getElementById('caja_nombres').classList.remove('col-span-2');
@@ -231,16 +264,30 @@
             // Datos comunes
             document.getElementById('m_email').innerText = d.email;
             document.getElementById('m_celular').innerText = d.celular || 'No registrado';
-            
+
             let ubicacion = d.ubicacion;
-            if(!ubicacion || ubicacion.trim() === '/  /') {
+            if (!ubicacion || ubicacion.trim() === '/  /') {
                 ubicacion = 'Sin información de ubicación';
                 document.getElementById('m_direccion').innerText = '';
             } else {
                 document.getElementById('m_direccion').innerText = d.direccion || '';
             }
             document.getElementById('m_ubicacion').innerText = ubicacion;
+            // Control del Documento de Confianza
+            const btnVerDoc = document.getElementById('btn_ver_documento');
+            const txtSinDoc = document.getElementById('txt_sin_documento');
 
+            if (d.documento && d.documento.trim() !== '') {
+                btnVerDoc.href = d.documento;
+                btnVerDoc.classList.remove('hidden');
+                btnVerDoc.classList.add('inline-flex');
+                txtSinDoc.classList.add('hidden');
+            } else {
+                btnVerDoc.href = '#';
+                btnVerDoc.classList.add('hidden');
+                btnVerDoc.classList.remove('inline-flex');
+                txtSinDoc.classList.remove('hidden');
+            }
             document.getElementById('modalDetalle').classList.remove('hidden');
         }
 

@@ -57,6 +57,11 @@
                         <x-nav-link :href="route('admin.peticiones')" :active="request()->routeIs('admin.peticiones')" class="text-white hover:text-cyan-200 border-transparent hover:border-cyan-300 focus:border-white transition-all font-medium tracking-wide">
                             {{ __('Accesos') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('admin.usuarios')" :active="request()->routeIs('admin.usuarios')" class="text-white hover:text-cyan-200 border-transparent hover:border-cyan-300 focus:border-white transition-all font-medium tracking-wide">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
+                        
                         <x-nav-link :href="route('admin.crear')" :active="request()->routeIs('admin.crear')" class="text-white hover:text-cyan-200 border-transparent hover:border-cyan-300 focus:border-white transition-all font-medium tracking-wide">
                             {{ __('Redactar') }}
                         </x-nav-link>

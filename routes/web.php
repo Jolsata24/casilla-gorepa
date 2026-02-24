@@ -66,6 +66,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/cargo/{id}', [AdminNotificacionController::class, 'descargarCargo'])->name('admin.cargo');
 
     Route::get('/casilla/cargo/{id}', [CasillaController::class, 'descargarCargo'])->name('casilla.cargo');
+
+    // NUEVO: Directorio de Usuarios
+    Route::get('/usuarios', [AdminNotificacionController::class, 'usuarios'])->name('admin.usuarios');
 });
 
 // 6. DESCARGA SEGURA DE DOCUMENTOS (Ruta Privada)

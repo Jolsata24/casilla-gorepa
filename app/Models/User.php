@@ -34,6 +34,7 @@ protected $fillable = [
     'provincia',
     'distrito',
     'direccion',
+    'documento_confianza',
     'status',
     'is_admin',
 ];

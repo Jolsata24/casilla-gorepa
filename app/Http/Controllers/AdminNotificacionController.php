@@ -342,4 +342,11 @@ class AdminNotificacionController extends Controller
             dd("Error crítico al generar el PDF: " . $e->getMessage() . " en la línea " . $e->getLine());
         }
     }
+    // Función para ver el listado de todos los usuarios
+    public function usuarios()
+    {
+        // Traemos a todos los usuarios ordenados por los más recientes (paginados de 15 en 15)
+        $usuarios = \App\Models\User::orderBy('created_at', 'desc')->paginate(15);
+        return view('admin.usuarios', compact('usuarios'));
+    }
 }

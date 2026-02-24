@@ -18,33 +18,34 @@ class SolicitudController extends Controller
 
     public function store(Request $request)
     {   
-        // 1. Validación Condicional (El corazón del cambio)
+        // 1. Validación (Agregamos la validación del documento)
         $request->validate([
             'tipo_documento' => 'required|in:DNI,RUC',
-            
-            // Si es DNI, exigimos estos
             'dni' => 'nullable|required_if:tipo_documento,DNI|string|size:8|unique:users,dni',
             'apellido_paterno' => 'nullable|required_if:tipo_documento,DNI|string',
             'apellido_materno' => 'nullable|required_if:tipo_documento,DNI|string',
-            
-            // Si es RUC, exigimos estos
             'ruc' => 'nullable|required_if:tipo_documento,RUC|string|size:11|unique:users,ruc',
             'razon_social' => 'nullable|required_if:tipo_documento,RUC|string|max:255',
-
-            // Campos Generales obligatorios
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'celular' => 'required|string|max:15',
-            
-            // Ubicación opcional
             'departamento' => 'nullable|string',
             'provincia' => 'nullable|string',
             'distrito' => 'nullable|string',
             'direccion' => 'nullable|string',
+            // VALIDACIÓN DEL ARCHIVO
+            'documento_confianza' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', 
         ]);
 
         try {
-            // 2. Creación del Usuario
+            // 2. Subida del Archivo
+            $rutaDocumento = null;
+            if ($request->hasFile('documento_confianza')) {
+                // Se guarda en storage/app/public/documentos_confianza
+                $rutaDocumento = $request->file('documento_confianza')->store('documentos_confianza', 'public');
+            }
+
+            // 3. Creación del Usuario
             $user = User::create([
                 'tipo_documento' => $request->tipo_documento,
                 'ruc' => $request->ruc,
@@ -55,15 +56,16 @@ class SolicitudController extends Controller
                 'apellido_materno' => $request->apellido_materno,
                 'email' => $request->email,
                 'celular' => $request->celular,
-                
                 'departamento' => $request->departamento ?? 'No registrado',
                 'provincia' => $request->provincia ?? 'No registrado',
                 'distrito' => $request->distrito ?? 'No registrado',
                 'direccion' => $request->direccion ?? 'No registrado',
                 
-                // Contraseña temporal segura que el usuario no conoce
+                // GUARDAR LA RUTA EN LA BD
+                'documento_confianza' => $rutaDocumento, 
+                
                 'password' => Hash::make(Str::random(30)),
-                'status' => 0, // Pendiente de aprobación
+                'status' => 0, 
                 'is_admin' => 0,
             ]);
 
