@@ -53,6 +53,7 @@ class AdminNotificacionController extends Controller
     {
         $search = $request->input('search');
 
+        // Búsqueda individual (la que ya tenías)
         $usuarios = User::where('is_admin', false)
             ->where('status', 1) // Solo usuarios aprobados
             ->when($search, function ($query) use ($search) {
@@ -63,68 +64,93 @@ class AdminNotificacionController extends Controller
             ->limit(5)
             ->get();
 
-        return view('admin.crear', compact('usuarios', 'search'));
+        // NUEVO: TODOS los usuarios para llenar el Modal Masivo
+        $todosLosUsuarios = User::where('is_admin', false)
+            ->where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        // Retornamos también $todosLosUsuarios a la vista
+        return view('admin.crear', compact('usuarios', 'search', 'todosLosUsuarios'));
     }
 
     /**
-     * 4. PROCESAR ENVÍO (Guardar Notificación y Archivo)
-     * ¡AQUÍ ESTABA EL ERROR! Esto debe crear una Notificación, no un Usuario.
-     */
-    /**
-     * 4. PROCESAR ENVÍO (CORREGIDO)
-     * Este método recibe el archivo y lo guarda en la base de datos.
+     * 4. PROCESAR ENVÍO (MÚLTIPLE / MASIVO Y FIRMA DNIE)
      */
     public function store(Request $request)
     {
-        // 1. Validación
+        // 1. Validación modificada para aceptar un ARREGLO de usuarios (user_ids)
         $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'asunto'  => 'required|string|max:255',
-            'mensaje' => 'nullable|string',
-            'archivo' => 'required|file|mimes:pdf|max:20480', // Máx 20MB
+            'user_ids'   => 'required|array|min:1', // Cambiado de user_id a user_ids[]
+            'user_ids.*' => 'exists:users,id',
+            'asunto'     => 'required|string|max:255',
+            'mensaje'    => 'nullable|string',
+            'archivo'    => 'required_without:archivo_firmado_base64|file|mimes:pdf|max:20480', 
+            'archivo_firmado_base64' => 'nullable|string'
         ]);
 
         try {
-            // 2. Subir Archivo
-            $rutaArchivo = $request->file('archivo')->store('documentos', 'local');
+            $rutaArchivo = '';
 
-            // 3. Crear Notificación en BD
-            $notificacion = Notificacion::create([
-                'user_id'          => $request->user_id,
-                'asunto'           => $request->asunto,
-                'mensaje'          => $request->mensaje,
-                'ruta_archivo_pdf' => $rutaArchivo,
-                'fecha_lectura'    => null,
-            ]);
-
-            // 4. Enviar Correo y Registrar en Bitácora
-            // Usamos un try-catch interno para que, si falla el correo, NO falle todo el proceso
-            try {
-                $usuario = User::find($request->user_id);
+            // 2. Guardar el archivo (SE GUARDA UNA SOLA VEZ PARA TODOS)
+            if ($request->filled('archivo_firmado_base64')) {
+                // Decodificar el texto base64 a archivo binario (PDF)
+                $pdfDecodificado = base64_decode($request->archivo_firmado_base64);
                 
-                // Enviar Correo
-                Mail::to($usuario->email)->send(new NotificacionRecibida($request->asunto, $usuario->name));
-
-                // Registrar en Bitácora (Auditoría)
-                Bitacora::create([
-                    'user_id' => Auth::id(),
-                    'accion'  => 'ENVIO_NOTIFICACION',
-                    'detalle' => "Enviado a {$usuario->dni} ({$usuario->email}) | Asunto: {$request->asunto}",
-                    'ip'      => $request->ip()
-                ]);
-
-            } catch (\Exception $e) {
-                // Si falla el correo, avisamos con 'warning' pero el documento SÍ se guardó
-                return redirect()->route('admin.crear')
-                    ->with('warning', 'Documento guardado correctamente, pero no se pudo enviar el correo de aviso: ' . $e->getMessage());
+                // Generar un nombre único para el archivo firmado
+                $nombreArchivo = 'notificacion_' . time() . '_firmado.pdf';
+                $rutaArchivo = 'documentos/' . $nombreArchivo;
+                
+                // Guardarlo en el storage de Laravel
+                \Illuminate\Support\Facades\Storage::disk('local')->put($rutaArchivo, $pdfDecodificado);
+                
+                \Illuminate\Support\Facades\Log::info("Documento guardado vía firma DNIe Base64");
+            } else {
+                // Flujo normal (sin firma)
+                $rutaArchivo = $request->file('archivo')->store('documentos', 'local');
             }
 
-            // 5. Retorno Exitoso (Todo salió bien)
-            return redirect()->route('admin.crear')
-                ->with('success', '¡Documento enviado y ciudadano notificado por correo!');
+            // 3. Recorrer los usuarios y crear la notificación para CADA UNO
+            $usuarios = User::whereIn('id', $request->user_ids)->get();
+            $erroresCorreo = 0;
+
+            foreach ($usuarios as $usuario) {
+                // Crear Notificación en BD
+                Notificacion::create([
+                    'user_id'          => $usuario->id,
+                    'asunto'           => $request->asunto,
+                    'mensaje'          => $request->mensaje,
+                    'ruta_archivo_pdf' => $rutaArchivo,
+                    'fecha_lectura'    => null,
+                ]);
+
+                // Enviar Correo y Registrar en Bitácora
+                try {
+                    Mail::to($usuario->email)->send(new NotificacionRecibida($request->asunto, $usuario->name));
+
+                    Bitacora::create([
+                        'user_id' => Auth::id(),
+                        'accion'  => 'ENVIO_NOTIFICACION',
+                        'detalle' => "Enviado a {$usuario->dni} ({$usuario->email}) | Asunto: {$request->asunto}",
+                        'ip'      => $request->ip()
+                    ]);
+
+                } catch (\Exception $e) {
+                    // Si falla el correo de un usuario, lo contamos pero NO detenemos el bucle
+                    $erroresCorreo++;
+                    \Illuminate\Support\Facades\Log::warning("No se pudo enviar correo a {$usuario->email}: " . $e->getMessage());
+                }
+            }
+
+            // 4. Evaluar éxito y redirigir
+            $mensajeExito = '¡Documento enviado exitosamente a ' . count($usuarios) . ' destinatario(s)!';
+            if ($erroresCorreo > 0) {
+                $mensajeExito .= " (Advertencia: $erroresCorreo correos de aviso fallaron en enviarse).";
+            }
+
+            return redirect()->route('admin.crear')->with('success', $mensajeExito);
 
         } catch (\Exception $e) {
-            // Error General (Falla al subir archivo o guardar en BD)
             return back()->withInput()
                 ->with('error', 'Error crítico al procesar el envío: ' . $e->getMessage());
         }
