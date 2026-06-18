@@ -22,31 +22,31 @@ class MtcCallbackController extends Controller
      */
     public function firmarDeposito(Request $request) 
     {
-        Log::info("MTC: Solicitud de firma de depósito recibida.");
+        Log::info("MTC: Solicitud de firma recibida.");
 
-        // Validar que venga el archivo
-        if (!$request->has('archivoBase64')) {
-            return response()->json(['success' => false, 'message' => 'Falta archivoBase64'], 400);
-        }
+        // Validar exactamente lo que pide el MTC
+        $request->validate([
+            'nombreArchivo' => 'required|string',
+            'archivoBase64' => 'required|string'
+        ]);
 
         try {
-            // 1. Decodificar Base64 entrante
             $pdfBinario = base64_decode($request->archivoBase64);
-
-            // 2. Procesar firma (o sello de recepción)
             $pdfFirmadoBinario = $this->firmaService->firmarDocumento($pdfBinario);
-
-            // 3. Codificar de nuevo a Base64 para responder
             $pdfFirmadoBase64 = base64_encode($pdfFirmadoBinario);
 
+            // El MTC espera success, message y data según estándar general, 
+            // aunque a veces solo piden devolver lo mismo. Lo hacemos robusto:
             return response()->json([
                 'success' => true,
+                'message' => 'Documento firmado correctamente',
+                'nombreArchivo' => $request->nombreArchivo,
                 'archivoBase64' => $pdfFirmadoBase64
             ]);
 
         } catch (\Exception $e) {
             Log::error("MTC Error en firmarDeposito: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error interno al firmar'], 500);
+            return response()->json(['success' => false, 'message' => 'Error interno'], 500);
         }
     }
 

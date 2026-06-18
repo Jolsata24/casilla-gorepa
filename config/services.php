@@ -34,5 +34,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'mtc' => [
+        'client_id' => env('MTC_CLIENT_ID'),
+        'client_secret' => env('MTC_CLIENT_SECRET'),
+        'base_url' => env('MTC_BASE_URL', 'https://dvwscasilla.mtc.gob.pe/ms-notific/v2/servicios-publicos'),
+    ],
 
 ];
